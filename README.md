@@ -15,7 +15,7 @@
 ## Setup
 1. สร้าง Supabase project แล้วเปิด SQL Editor
 2. รัน `supabase.sql`
-3. แก้ `config.js` ใส่ `SUPABASE_URL` และ `SUPABASE_ANON_KEY`
+3. `config.js` ใส่ Project URL และ Publishable Key ให้แล้ว
 4. ถ้าต้องการให้ผู้สอบไม่ต้องเลือก PDF เอง ให้อัปโหลด PDF ต้นฉบับในพื้นที่ที่คุณมีสิทธิ์ใช้งาน แล้วใส่ URL ใน `SOURCE_PDF_URL`; หากเว้นว่าง ผู้สอบจะเลือกไฟล์ PDF จากเครื่องและไฟล์จะไม่ถูกอัปโหลดไป Supabase
 5. เปิด `index.html` ผ่าน static hosting เช่น GitHub Pages / Netlify / Vercel
 6. สำหรับ admin: สร้างผู้ใช้ใน Supabase Auth แล้วรัน `insert into public.exam_admins(user_id) values ('UUID ของผู้ใช้');` จากนั้นล็อกอินที่ `admin.html`
@@ -53,3 +53,11 @@ update private.exam_answer_keys set correct_option='A', key_status='checked', re
 
 ## หมายเหตุ
 ถ้า `config.js` ยังเป็น placeholder ระบบจะเข้า DEMO MODE เพื่อทดสอบ UI และการ render PDF แต่จะไม่คำนวณคะแนน เพราะเฉลยถูกเก็บเฉพาะฝั่ง Supabase เพื่อไม่ให้เปิดดูจาก source code หน้าเว็บได้
+
+
+## GitHub Pages — student flow
+เวอร์ชันนี้เอาช่อง **ไฟล์ข้อสอบต้นฉบับ** ออกจากหน้าผู้เข้าสอบแล้ว นักเรียนเพียงกรอกชื่อและกด **เริ่มทำข้อสอบ** เท่านั้น
+
+ก่อนเปิด GitHub Pages ให้ผู้ดูแลนำ PDF ที่ใช้กับ question manifest ไปไว้ใน repository โดยเปลี่ยนชื่อเป็น `Posn.pdf` และวางไว้โฟลเดอร์เดียวกับ `index.html` หรือแก้ `SOURCE_PDF_URL` ใน `config.js` ให้ชี้ไปยังตำแหน่งไฟล์ของคุณเอง
+
+หากไฟล์ดังกล่าวหาไม่เจอ นักเรียนจะเห็นเพียงข้อความ `โหลดข้อสอบไม่สำเร็จ กรุณาติดต่อผู้ดูแล` และจะไม่มีช่องให้อัปโหลด PDF เอง

@@ -135,6 +135,62 @@
       radial-gradient(circle at center,#fff 59%,transparent 60%),
       conic-gradient(var(--teal) calc(var(--score)*1%),#e7efed 0)}
     .score-ring b{font-size:34px;letter-spacing:-.04em}.score-ring span{font-size:12px;color:var(--muted)}
+
+    .result-shell{max-width:980px;margin:auto}
+    .result-hero-pro{position:relative;overflow:hidden;padding:28px;border-radius:28px;background:
+      radial-gradient(circle at 15% 10%,rgba(255,255,255,.50),transparent 24%),
+      linear-gradient(135deg,#0b7a72 0%,#0a5f59 58%,#0d4954 100%);
+      color:#fff;box-shadow:0 28px 60px rgba(8,74,71,.22)}
+    .result-hero-pro:after{content:"";position:absolute;right:-70px;top:-80px;width:220px;height:220px;border-radius:50%;border:34px solid rgba(255,255,255,.11)}
+    .result-hero-pro .eyebrow{color:#d8f6f0}
+    .result-headline{display:grid;grid-template-columns:1.15fr .85fr;gap:20px;align-items:center}
+    .result-copy h2{font-size:clamp(28px,4vw,46px);line-height:1.04;margin:8px 0 10px;letter-spacing:-.04em}
+    .result-copy p{margin:0;color:rgba(255,255,255,.86);line-height:1.7;max-width:580px}
+    .result-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+    .btn.light{background:#fff;color:#0a5f59;border:0}
+    .btn.lightghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.22)}
+    .score-orbit{display:grid;place-items:center;position:relative}
+    .score-ring-pro{width:210px;height:210px;border-radius:50%;display:grid;place-items:center;position:relative;background:
+      radial-gradient(circle at center, rgba(255,255,255,.98) 57%, transparent 58%),
+      conic-gradient(#fff calc(var(--score)*1%), rgba(255,255,255,.16) 0)}
+    .score-ring-pro:before{content:"";position:absolute;inset:13px;border-radius:50%;border:1px dashed rgba(255,255,255,.28)}
+    .score-ring-pro .inner{position:relative;text-align:center;color:#163238}
+    .score-ring-pro b{display:block;font-size:50px;line-height:1;letter-spacing:-.05em}
+    .score-ring-pro span{display:block;font-size:14px;color:#59706d;margin-top:5px}
+    .score-caption{margin-top:12px;color:rgba(255,255,255,.82);font-size:13px;text-align:center}
+    .result-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+    .result-stat{background:#fff;border:1px solid var(--line);border-radius:22px;padding:16px}
+    .result-stat .label{font-size:12px;color:var(--muted);font-weight:800}
+    .result-stat b{display:block;font-size:30px;line-height:1;letter-spacing:-.04em;margin-top:6px}
+    .result-stat .sub{display:block;margin-top:4px;font-size:12px;color:#526966}
+    .result-stat.good b{color:var(--green)} .result-stat.bad b{color:var(--red)} .result-stat.accent b{color:var(--teal)}
+    .result-panels{display:grid;grid-template-columns:1.15fr .85fr;gap:14px;margin-top:14px}
+    .review-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:10px}
+    .review-pill{border:1px solid var(--line);border-radius:16px;padding:11px;background:#fff;min-height:74px}
+    .review-pill .no{font-size:12px;color:var(--muted);font-weight:900}
+    .review-pill .ans{font-size:22px;font-weight:1000;margin-top:7px;color:var(--ink)}
+    .review-pill.unanswered{background:#fff9f7;border-color:#ffd9cc}
+    .review-pill.unanswered .ans{color:#bf4c23}
+    .delta-badge{display:inline-flex;align-items:center;gap:7px;padding:10px 12px;border-radius:999px;font-size:13px;font-weight:900;border:1px solid var(--line);background:#fff}
+    .delta-badge.up{background:#effaf4;color:#0f7a56;border-color:#cdebd8}
+    .delta-badge.down{background:#fff2f2;color:#b23b43;border-color:#ffd6d8}
+    .listy{display:grid;gap:10px}
+    .mini-line{display:flex;justify-content:space-between;gap:12px;padding:11px 12px;border-radius:15px;background:#f7faf9;border:1px solid var(--line);font-size:14px}
+    .celebrate{margin-top:14px;padding:13px 14px;border-radius:16px;background:#f6fbfa;border:1px dashed #c7ddd8;color:#3d5c58;line-height:1.6}
+    @media(max-width:900px){
+      .result-headline,.result-panels{grid-template-columns:1fr}
+      .result-stats{grid-template-columns:repeat(2,1fr)}
+      .score-orbit{order:-1}
+    }
+    @media(max-width:540px){
+      .result-hero-pro{padding:18px}
+      .score-ring-pro{width:175px;height:175px}
+      .score-ring-pro b{font-size:38px}
+      .result-stats{grid-template-columns:1fr 1fr}
+      .review-grid{grid-template-columns:repeat(2,1fr)}
+      .result-actions .btn{width:100%}
+    }
+
     .hidden{display:none!important}
     .muted{color:var(--muted)}
     .small{font-size:12px}
@@ -603,20 +659,119 @@ async function showStudentResult(attemptId){
   if(error) return toast(error.message,'error');
   const r=Array.isArray(data)?data[0]:data;
   const card=$('#resultCard'); card.classList.remove('hidden');
+
   if(!r?.score_visible){
-    card.innerHTML=`<div class="result-hero"><div class="eyebrow">Submitted</div><h2>ส่งคำตอบเรียบร้อยแล้ว</h2><p class="muted">ผู้ดูแลตั้งค่าไม่ให้แสดงคะแนนทันที</p><button class="btn primary" onclick="resetStudent()">กลับหน้าแรก</button></div>`;
+    card.innerHTML=`<div class="result-shell">
+      <div class="result-hero-pro">
+        <div class="result-headline">
+          <div class="result-copy">
+            <div class="eyebrow">Submitted</div>
+            <h2>ส่งคำตอบเรียบร้อยแล้ว</h2>
+            <p>ระบบได้รับคำตอบของคุณครบแล้ว สามารถกลับหน้าแรกหรือเริ่มทำข้อสอบชุดเดิมใหม่ได้ทันที หากผู้ดูแลเปิดให้ทำซ้ำ</p>
+            <div class="result-actions">
+              <button class="btn light" onclick="resetStudent()">กลับหน้าแรก</button>
+              <button class="btn lightghost" onclick="retrySameExam()">ทำชุดนี้อีกครั้ง</button>
+              <button class="btn lightghost" onclick="window.print()">พิมพ์ผลลัพธ์</button>
+            </div>
+          </div>
+          <div class="score-orbit">
+            <div class="score-ring-pro" style="--score:${Math.round((S.answers.size/Math.max(1,S.questions.length))*100)}">
+              <div class="inner"><b>${Math.round((S.answers.size/Math.max(1,S.questions.length))*100)}%</b><span>ความครบของการตอบ</span></div>
+            </div>
+            <div class="score-caption">ผู้ดูแลตั้งค่าไม่ให้แสดงคะแนนทันที</div>
+          </div>
+        </div>
+      </div>
+      <div class="result-stats">
+        <div class="result-stat accent"><span class="label">ตอบแล้ว</span><b>${S.answers.size}</b><span class="sub">จาก ${S.questions.length} ข้อ</span></div>
+        <div class="result-stat"><span class="label">ยังไม่ตอบ</span><b>${Math.max(0,S.questions.length-S.answers.size)}</b><span class="sub">ข้อที่เว้นว่าง</span></div>
+        <div class="result-stat"><span class="label">เวลาที่ตั้งไว้</span><b>${S.exam?.duration_minutes || '—'}</b><span class="sub">นาที</span></div>
+        <div class="result-stat"><span class="label">สถานะ</span><b>ส่งแล้ว</b><span class="sub">บันทึกเรียบร้อย</span></div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="section-head">
+          <div><h3>สรุปการตอบของฉัน</h3><p>ดูได้ว่าข้อไหนตอบแล้วหรือยังไม่ตอบ</p></div>
+          <button id="reviewToggleBtn" class="btn ghost" onclick="toggleResultReview()">ซ่อนสรุปการตอบ</button>
+        </div>
+        <div id="answerReviewWrap">${buildAnswerReviewHtml(S.questions.length)}</div>
+      </div>
+    </div>`;
     return;
   }
-  const delta=r.delta_percentage==null?null:Number(r.delta_percentage);
-  card.innerHTML=`<div class="result-hero">
-    <div class="eyebrow">Result</div><h2>ส่งคำตอบเรียบร้อย</h2>
-    <div class="score-ring" style="--score:${Number(r.percentage||0)}"><div><b>${Number(r.percentage||0).toFixed(1)}%</b><span>${r.score}/${r.max_score} คะแนน</span></div></div>
-    <div class="chips" style="justify-content:center">
-      <span class="chip">ตอบ ${r.answered_count}/${r.max_score} ข้อ</span>
-      ${r.previous_percentage==null?'<span class="chip">ยังไม่มีรอบก่อน</span>':`<span class="chip">รอบก่อน ${Number(r.previous_percentage).toFixed(1)}%</span>`}
-      ${delta==null?'':`<span class="chip ${delta>=0?'soft':''}">${delta>=0?'+':''}${delta.toFixed(1)} จุด</span>`}
+
+  const score = Number(r.score||0);
+  const max = Number(r.max_score||0);
+  const pct = Number(r.percentage||0);
+  const answered = Number(r.answered_count||0);
+  const wrong = Math.max(0, answered - score);
+  const unanswered = Math.max(0, max - answered);
+  const delta = r.delta_percentage==null?null:Number(r.delta_percentage);
+  const prev = r.previous_percentage==null?null:Number(r.previous_percentage);
+  const message = examLevelMessage(pct);
+
+  card.innerHTML=`<div class="result-shell">
+    <div class="result-hero-pro">
+      <div class="result-headline">
+        <div class="result-copy">
+          <div class="eyebrow">Result</div>
+          <h2>ส่งคำตอบเรียบร้อย · ได้ <span style="white-space:nowrap">${pct.toFixed(1)}%</span></h2>
+          <p>${message}</p>
+          <div class="result-actions">
+            <button class="btn light" onclick="resetStudent()">กลับหน้าแรก</button>
+            <button class="btn lightghost" onclick="retrySameExam()">ทำชุดนี้อีกครั้ง</button>
+            <button class="btn lightghost" onclick="toggleResultReview()" id="reviewToggleBtn">ดูสรุปการตอบ</button>
+            <button class="btn lightghost" onclick="window.print()">พิมพ์ผลลัพธ์</button>
+          </div>
+        </div>
+        <div class="score-orbit">
+          <div class="score-ring-pro" style="--score:${pct}">
+            <div class="inner">
+              <b>${pct.toFixed(1)}%</b>
+              <span>${score} / ${max} คะแนน</span>
+            </div>
+          </div>
+          <div class="score-caption">${S.exam?.title || ''}</div>
+        </div>
+      </div>
     </div>
-    <div style="margin-top:18px"><button class="btn primary" onclick="resetStudent()">กลับหน้าแรก</button></div>
+
+    <div class="result-stats">
+      <div class="result-stat good"><span class="label">ตอบถูก</span><b>${score}</b><span class="sub">ข้อที่ถูกต้อง</span></div>
+      <div class="result-stat bad"><span class="label">ตอบผิด</span><b>${wrong}</b><span class="sub">จากข้อที่ตอบ</span></div>
+      <div class="result-stat"><span class="label">ไม่ตอบ</span><b>${unanswered}</b><span class="sub">ข้อที่เว้นว่าง</span></div>
+      <div class="result-stat accent"><span class="label">อัตราการทำข้อสอบ</span><b>${Math.round((answered/Math.max(1,max))*100)}%</b><span class="sub">ตอบแล้ว ${answered} ข้อ</span></div>
+    </div>
+
+    <div class="result-panels">
+      <div class="card">
+        <div class="section-head">
+          <div><h3>สรุปคำตอบของฉัน</h3><p>ดูได้ว่าข้อไหนตอบอะไร และข้อไหนยังไม่ได้ตอบ</p></div>
+          <span class="chip soft">${answered} / ${max} answered</span>
+        </div>
+        <div id="answerReviewWrap" class="hidden">${buildAnswerReviewHtml(max)}</div>
+        <div class="celebrate">${message}</div>
+      </div>
+
+      <div class="listy">
+        <div class="card">
+          <div class="section-head"><div><h3>เปรียบเทียบรอบก่อน</h3><p>จับคู่จากเบอร์โทร + ประเภทข้อสอบ + วิชา</p></div></div>
+          <div class="mini-line"><span>รอบนี้</span><strong>${pct.toFixed(1)}%</strong></div>
+          <div class="mini-line"><span>รอบก่อน</span><strong>${prev==null?'—':prev.toFixed(1)+'%'}</strong></div>
+          <div style="margin-top:12px">
+            ${delta==null
+              ? '<span class="delta-badge">ยังไม่มีรอบก่อน</span>'
+              : `<span class="delta-badge ${delta>=0?'up':'down'}">${delta>=0?'▲':'▼'} ${delta>=0?'+':''}${delta.toFixed(1)} จุด</span>`}
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-head"><div><h3>ข้อมูลการสอบ</h3><p>สรุปรายการของชุดข้อสอบนี้</p></div></div>
+          <div class="mini-line"><span>ชนิดข้อสอบ</span><strong>${S.exam?.exam_type || '—'}</strong></div>
+          <div class="mini-line"><span>วิชา</span><strong>${S.exam?.subject || '—'}</strong></div>
+          <div class="mini-line"><span>จำนวนข้อ</span><strong>${max}</strong></div>
+          <div class="mini-line"><span>เวลาที่กำหนด</span><strong>${S.exam?.duration_minutes || '—'} นาที</strong></div>
+        </div>
+      </div>
+    </div>
   </div>`;
 }
 function resetStudent(){
@@ -642,6 +797,40 @@ async function resumeAttempt(){
     await loadAttempt(S.resume.id);
     $('#joinCard').classList.add('hidden');$('#resumeCard').classList.add('hidden');$('#examCard').classList.remove('hidden');
   }catch(e){toast(e.message,'error')}
+}
+
+
+function examLevelMessage(pct){
+  pct = Number(pct||0);
+  if(pct >= 85) return 'ยอดเยี่ยมมาก ผลสอบรอบนี้อยู่ในระดับโดดเด่น';
+  if(pct >= 70) return 'ทำได้ดีมาก เหลือเก็บรายละเอียดอีกเล็กน้อย';
+  if(pct >= 50) return 'มีฐานที่ดีแล้ว ลองทบทวนจุดพลาดแล้วกลับมาทำอีกรอบ';
+  return 'รอบนี้เป็น baseline ที่ดี ใช้ผลนี้วางแผนทบทวนสำหรับรอบถัดไป';
+}
+function buildAnswerReviewHtml(total){
+  const items=[];
+  for(let i=1;i<=total;i++){
+    const a = S.answers.get(i);
+    items.push(`<div class="review-pill ${a?'' : 'unanswered'}"><div class="no">ข้อ ${i}</div><div class="ans">${a || '—'}</div><div class="small muted">${a ? 'เลือกแล้ว' : 'ยังไม่ตอบ'}</div></div>`);
+  }
+  return `<div class="review-grid">${items.join('')}</div>`;
+}
+function retrySameExam(){
+  if(!S.exam) return;
+  $('#resultCard').classList.add('hidden');
+  $('#joinCard').classList.remove('hidden');
+  $('#examCard').classList.add('hidden');
+  $('#examCode').value = S.exam.access_code || $('#examCode').value;
+  window.scrollTo({top:0,behavior:'smooth'});
+  toast('พร้อมเริ่มสอบใหม่แล้ว');
+}
+function toggleResultReview(){
+  const box = $('#answerReviewWrap');
+  const btn = $('#reviewToggleBtn');
+  if(!box) return;
+  const hidden = box.classList.contains('hidden');
+  box.classList.toggle('hidden', !hidden);
+  if(btn) btn.textContent = hidden ? 'ซ่อนสรุปการตอบ' : 'ดูสรุปการตอบ';
 }
 
 /* ---------------- ADMIN AUTH ---------------- */

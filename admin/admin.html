@@ -1,7 +1,371 @@
 <!doctype html>
-<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>POSN Biology Admin</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>
-:root{--ink:#173238;--teal:#006c64;--mint:#e7f1ef;--orange:#f26632;--line:#dce7e4;--paper:#f8fbfa;--muted:#6b7c79}*{box-sizing:border-box}body{margin:0;background:#f5f9f8;color:var(--ink);font-family:Arial,"Noto Sans Thai",sans-serif}.wrap{width:min(1220px,calc(100% - 26px));margin:auto;padding:22px 0 50px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}.brand{font-weight:900;font-size:20px}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:13px}.card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:20px}.login{grid-column:span 5}.help{grid-column:span 7}.full{grid-column:1/-1}input{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:12px;margin:5px 0 10px}button{border:0;border-radius:12px;padding:12px 15px;font-weight:800;cursor:pointer}.primary{background:var(--orange);color:#fff}.ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}.hidden{display:none!important}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:11px 8px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--muted);font-size:11px;text-transform:uppercase}.badge{display:inline-block;padding:5px 8px;border-radius:999px;background:var(--mint);font-size:11px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}.metric{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:14px}.metric span{display:block;color:var(--muted);font-size:11px}.metric b{font-size:26px}.muted{color:var(--muted)}@media(max-width:780px){.login,.help{grid-column:1/-1}.metrics{grid-template-columns:1fr 1fr}.tablewrap{overflow:auto}}
-</style></head><body><div class="wrap"><div class="top"><div class="brand">POSN Biology • Admin</div><a href="index.html">กลับหน้าสอบ</a></div><section id="loginView" class="grid"><div class="card login"><h2>เข้าสู่ระบบผู้ดูแล</h2><label>Email</label><input id="email" type="email" autocomplete="username"><label>Password</label><input id="password" type="password" autocomplete="current-password"><button id="loginBtn" class="primary">เข้าสู่ระบบ</button><p id="loginMsg" class="muted"></p></div><div class="card help"><h2>Admin only</h2><p class="muted">หน้านี้ไม่มีระบบสมัครสมาชิก ผู้ดูแลต้องสร้างบัญชีใน Supabase Authentication และเพิ่ม UUID เข้า <code>exam_admins</code> ก่อนใช้งาน</p></div></section><section id="dash" class="hidden"><div class="metrics"><div class="metric"><span>Attempts</span><b id="mAttempts">0</b></div><div class="metric"><span>Submitted</span><b id="mSubmitted">0</b></div><div class="metric"><span>Average</span><b id="mAvg">—</b></div><div class="metric"><span>In progress</span><b id="mLive">0</b></div></div><div class="card full"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2>ผลการสอบ</h2><div><button id="refreshBtn" class="ghost">รีเฟรช</button> <button id="logoutBtn" class="ghost">ออกจากระบบ</button></div></div><div class="tablewrap"><table><thead><tr><th>ชื่อ</th><th>เริ่ม</th><th>สถานะ</th><th>คะแนน</th><th>%</th><th>เปลี่ยนแท็บ</th><th></th></tr></thead><tbody id="rows"></tbody></table></div></div><div id="detailCard" class="card full hidden" style="margin-top:13px"></div></section></div><script>
-const sb=supabase.createClient("https://naekkdyprycrnbipraiv.supabase.co","sb_publishable_ORA6ah_DuauqZrW7Pf2p6w_EyIlKtuw");const $=s=>document.querySelector(s);function dt(x){return x?new Date(x).toLocaleString('th-TH'):'—'}async function login(){$('#loginMsg').textContent='กำลังเข้าสู่ระบบ…';const {error}=await sb.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#password').value});if(error)return $('#loginMsg').textContent=error.message;await load()}$('#loginBtn').onclick=login;$('#logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload()};$('#refreshBtn').onclick=load;
-async function load(){const {data:{session}}=await sb.auth.getSession();if(!session)return;const {data,error}=await sb.rpc('admin_list_attempts',{p_limit:500});if(error){$('#loginMsg').textContent='บัญชีนี้ยังไม่ได้รับสิทธิ์ admin';return}$('#loginView').classList.add('hidden');$('#dash').classList.remove('hidden');const arr=data||[];$('#mAttempts').textContent=arr.length;$('#mSubmitted').textContent=arr.filter(x=>x.status!=='in_progress').length;$('#mLive').textContent=arr.filter(x=>x.status==='in_progress').length;const scored=arr.filter(x=>Number.isFinite(x.score)&&x.total_questions);$('#mAvg').textContent=scored.length?(scored.reduce((s,x)=>s+x.score/x.total_questions*100,0)/scored.length).toFixed(1)+'%':'—';$('#rows').innerHTML=arr.map(x=>`<tr><td><strong>${escapeHtml(x.student_name)}</strong></td><td>${dt(x.started_at)}</td><td><span class="badge">${x.status}</span></td><td>${x.score==null?'—':x.score+'/'+x.total_questions}</td><td>${x.score==null?'—':(x.score/x.total_questions*100).toFixed(1)+'%'}</td><td>${x.tab_switches}</td><td><button class="ghost detail" data-id="${x.id}">ดู</button></td></tr>`).join('');document.querySelectorAll('.detail').forEach(b=>b.onclick=()=>detail(b.dataset.id))}
-function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}async function detail(id){const {data,error}=await sb.rpc('admin_attempt_detail',{p_attempt_id:id});if(error)return alert(error.message);const r=data;const d=$('#detailCard');d.classList.remove('hidden');d.innerHTML=`<h2>${escapeHtml(r.student_name)} — ${r.score??'—'}/${r.total??'—'}</h2><p class="muted">ใช้เวลา ${Math.round((r.time_used_seconds||0)/60)} นาที • ไม่ตอบ ${r.unanswered} ข้อ • เปลี่ยนแท็บ ${r.tab_switches} ครั้ง</p><div>${(r.topics||[]).map(t=>`<p><strong>${t.name}</strong> — ${t.accuracy}% (${t.correct}/${t.total})</p>`).join('')}</div>`;d.scrollIntoView({behavior:'smooth'})}load();</script></body></html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>POSN Biology Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{
+      --ink:#173238;--teal:#006c64;--teal2:#0b4f49;--mint:#e7f1ef;--orange:#f26632;
+      --line:#dce7e4;--paper:#f8fbfa;--muted:#6b7c79;--danger:#b42318;--warn:#b54708;
+      --shadow:0 14px 38px rgba(23,50,56,.07)
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:#f5f9f8;color:var(--ink);font-family:Arial,"Noto Sans Thai",sans-serif}
+    button,input,select{font:inherit}
+    .wrap{width:min(1320px,calc(100% - 26px));margin:auto;padding:22px 0 50px}
+    .top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:20px}
+    .brandmark{width:34px;height:34px;border-radius:12px;background:var(--teal);display:grid;place-items:center;color:#fff;font-size:14px}
+    .top a{color:var(--teal2);font-weight:800;text-decoration:none}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:13px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:var(--shadow)}
+    .login{grid-column:span 5}.help{grid-column:span 7}.full{grid-column:1/-1}
+    .hidden{display:none!important}
+    h1,h2,h3,p{margin-top:0}
+    h2{font-size:19px;margin-bottom:14px}.muted{color:var(--muted)}
+    label{font-size:12px;font-weight:800;color:var(--muted)}
+    input,select{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);outline:none}
+    input:focus,select:focus{border-color:#8abbb5;box-shadow:0 0 0 3px rgba(0,108,100,.08)}
+    .login input{margin:5px 0 10px}
+    button{border:0;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer;transition:.16s ease}
+    button:hover{transform:translateY(-1px)}
+    .primary{background:var(--orange);color:#fff}.ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+    .soft{background:var(--mint);color:var(--teal2)}
+    .metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:13px}
+    .metric{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;box-shadow:var(--shadow)}
+    .metric span{display:block;color:var(--muted);font-size:11px;font-weight:700;margin-bottom:5px}
+    .metric b{font-size:25px;letter-spacing:-.4px}.metric small{display:block;color:var(--muted);margin-top:4px}
+    .toolbar{display:grid;grid-template-columns:1.5fr 1.2fr 1fr 1fr 1fr 1.15fr auto;gap:9px;align-items:end}
+    .field label{display:block;margin:0 0 6px}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .sectionHead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+    .sectionHead h2{margin:0}.countPill{background:var(--paper);border:1px solid var(--line);padding:7px 10px;border-radius:999px;font-size:12px;font-weight:800;color:var(--muted)}
+    .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:16px}
+    table{width:100%;border-collapse:collapse;font-size:13px;min-width:880px;background:#fff}
+    th,td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+    th{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.45px;background:var(--paper);position:sticky;top:0;z-index:1}
+    tbody tr:hover{background:#fbfdfc}
+    .badge{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:999px;background:var(--mint);font-size:11px;font-weight:800;white-space:nowrap}
+    .badge.live{background:#fff3e8;color:#9a3412}.badge.done{background:#eaf7ef;color:#166534}.badge.neutral{background:#f1f4f3;color:#52605d}
+    .risk{font-size:11px;font-weight:800}.risk.low{color:#237a57}.risk.mid{color:var(--warn)}.risk.high{color:var(--danger)}
+    .score{font-weight:900}.score.good{color:#15745b}.score.mid{color:#9a6700}.score.low{color:#b42318}
+    .empty{padding:36px;text-align:center;color:var(--muted)}
+    .personGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}
+    .personStat{padding:14px;border-radius:16px;background:var(--paper);border:1px solid var(--line)}
+    .personStat span{display:block;color:var(--muted);font-size:11px}.personStat b{font-size:21px}
+    .trend{display:flex;align-items:end;gap:5px;height:84px;margin-top:16px;padding:12px 8px 0;border-top:1px solid var(--line)}
+    .bar{flex:1;min-width:8px;border-radius:7px 7px 2px 2px;background:var(--teal);opacity:.78;position:relative}
+    .bar:hover{opacity:1}.bar::after{content:attr(data-label);position:absolute;bottom:100%;left:50%;transform:translate(-50%,-5px);font-size:9px;color:var(--muted);white-space:nowrap;opacity:0}.bar:hover::after{opacity:1}
+    .topic{margin:12px 0}.topicRow{display:flex;justify-content:space-between;gap:10px;margin-bottom:5px}.progress{height:9px;background:#edf3f1;border-radius:999px;overflow:hidden}.progress>i{display:block;height:100%;background:var(--teal);border-radius:999px}
+    .detailMeta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.detailMeta span{background:var(--paper);border:1px solid var(--line);padding:7px 9px;border-radius:10px;font-size:12px}
+    .notice{padding:11px 12px;border-radius:12px;background:#fff8f5;border:1px solid #ffd8c7;color:#8a3a17;font-size:12px}
+    @media(max-width:1100px){.metrics{grid-template-columns:repeat(3,1fr)}.toolbar{grid-template-columns:repeat(3,1fr)}.personGrid{grid-template-columns:repeat(3,1fr)}}
+    @media(max-width:780px){.login,.help{grid-column:1/-1}.metrics{grid-template-columns:1fr 1fr}.toolbar{grid-template-columns:1fr 1fr}.personGrid{grid-template-columns:1fr 1fr}.card{padding:16px}}
+    @media(max-width:520px){.toolbar,.metrics,.personGrid{grid-template-columns:1fr}.top{align-items:flex-start}.actions{width:100%}.actions button{flex:1}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><span class="brandmark">BIO</span><span>POSN Biology • Admin</span></div>
+    <a href="index.html">← กลับหน้าสอบ</a>
+  </div>
+
+  <section id="loginView" class="grid">
+    <div class="card login">
+      <h2>เข้าสู่ระบบผู้ดูแล</h2>
+      <label>Email</label><input id="email" type="email" autocomplete="username">
+      <label>Password</label><input id="password" type="password" autocomplete="current-password">
+      <button id="loginBtn" class="primary">เข้าสู่ระบบ</button>
+      <p id="loginMsg" class="muted" style="margin-top:12px"></p>
+    </div>
+    <div class="card help">
+      <h2>Admin only</h2>
+      <p class="muted">ไม่มีระบบสมัครสมาชิก ผู้ดูแลต้องถูกสร้างใน Supabase Authentication และมี UUID อยู่ใน <code>exam_admins</code> ก่อนใช้งาน</p>
+      <div class="notice">คำแนะนำ: ให้ RPC <code>admin_list_attempts</code> และ <code>admin_attempt_detail</code> ตรวจ <code>auth.uid()</code> กับตาราง admin ทุกครั้ง ไม่ควรเชื่อสิทธิ์จาก JavaScript ฝั่งหน้าเว็บเพียงอย่างเดียว</div>
+    </div>
+  </section>
+
+  <section id="dash" class="hidden">
+    <div class="metrics">
+      <div class="metric"><span>Attempts</span><b id="mAttempts">0</b><small>ทั้งหมด</small></div>
+      <div class="metric"><span>Submitted</span><b id="mSubmitted">0</b><small>ส่งข้อสอบแล้ว</small></div>
+      <div class="metric"><span>Average</span><b id="mAvg">—</b><small>คะแนนเฉลี่ย</small></div>
+      <div class="metric"><span>In progress</span><b id="mLive">0</b><small>กำลังทำ</small></div>
+      <div class="metric"><span>Students</span><b id="mStudents">0</b><small>ผู้สอบไม่ซ้ำ</small></div>
+      <div class="metric"><span>≥ 80%</span><b id="mHigh">0</b><small>ผลคะแนนสูง</small></div>
+    </div>
+
+    <div class="card full" style="margin-bottom:13px">
+      <div class="sectionHead">
+        <div><h2>ตัวกรองผลการสอบ</h2><div class="muted" style="font-size:12px">ค้นหาและกรองเฉพาะรายคนได้ทันทีโดยไม่ต้องโหลดใหม่</div></div>
+        <span id="filterCount" class="countPill">0 รายการ</span>
+      </div>
+      <div class="toolbar">
+        <div class="field"><label>ค้นหาชื่อ</label><input id="searchName" type="search" placeholder="พิมพ์ชื่อผู้สอบ..."></div>
+        <div class="field"><label>เลือกรายคน</label><select id="personFilter"><option value="">ทุกคน</option></select></div>
+        <div class="field"><label>สถานะ</label><select id="statusFilter"><option value="">ทุกสถานะ</option><option value="in_progress">กำลังทำ</option><option value="submitted">ส่งแล้ว</option><option value="timeout">หมดเวลา</option></select></div>
+        <div class="field"><label>ช่วงคะแนน</label><select id="scoreFilter"><option value="">ทุกคะแนน</option><option value="80up">80% ขึ้นไป</option><option value="70_79">70–79.99%</option><option value="50_69">50–69.99%</option><option value="under50">ต่ำกว่า 50%</option><option value="unscored">ยังไม่มีคะแนน</option></select></div>
+        <div class="field"><label>เปลี่ยนแท็บ</label><select id="tabFilter"><option value="">ทุกระดับ</option><option value="0">0 ครั้ง</option><option value="1_2">1–2 ครั้ง</option><option value="3up">3 ครั้งขึ้นไป</option></select></div>
+        <div class="field"><label>เรียงตาม</label><select id="sortFilter"><option value="newest">ล่าสุดก่อน</option><option value="oldest">เก่าสุดก่อน</option><option value="score_desc">คะแนนมาก → น้อย</option><option value="score_asc">คะแนนน้อย → มาก</option><option value="tabs_desc">เปลี่ยนแท็บมาก → น้อย</option><option value="name">ชื่อ A → Z</option></select></div>
+        <button id="resetFilterBtn" class="ghost">ล้างตัวกรอง</button>
+      </div>
+    </div>
+
+    <div id="personCard" class="card full hidden" style="margin-bottom:13px"></div>
+
+    <div class="card full">
+      <div class="sectionHead">
+        <h2>ผลการสอบ</h2>
+        <div class="actions">
+          <button id="exportBtn" class="soft">Export CSV</button>
+          <button id="refreshBtn" class="ghost">รีเฟรช</button>
+          <button id="logoutBtn" class="ghost">ออกจากระบบ</button>
+        </div>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>#</th><th>ชื่อ</th><th>เริ่ม</th><th>สถานะ</th><th>คะแนน</th><th>%</th><th>เปลี่ยนแท็บ</th><th>สัญญาณ</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="detailCard" class="card full hidden" style="margin-top:13px"></div>
+  </section>
+</div>
+
+<script>
+const sb = supabase.createClient(
+  "https://naekkdyprycrnbipraiv.supabase.co",
+  "sb_publishable_ORA6ah_DuauqZrW7Pf2p6w_EyIlKtuw"
+);
+const $ = s => document.querySelector(s);
+let allAttempts = [];
+let filteredAttempts = [];
+
+function dt(x){
+  return x ? new Date(x).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'}) : '—';
+}
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function pct(x){
+  if(x.score == null || !x.total_questions) return null;
+  return Number(x.score) / Number(x.total_questions) * 100;
+}
+function statusLabel(s){
+  const m={in_progress:'กำลังทำ',submitted:'ส่งแล้ว',timeout:'หมดเวลา'};
+  return m[s] || s || '—';
+}
+function statusClass(s){ return s==='in_progress'?'live':(s==='submitted'?'done':'neutral'); }
+function scoreClass(v){ return v==null?'':(v>=80?'good':v>=60?'mid':'low'); }
+function riskInfo(n){
+  n=Number(n||0);
+  if(n>=3) return {text:'สูง',cls:'high'};
+  if(n>=1) return {text:'เฝ้าดู',cls:'mid'};
+  return {text:'ปกติ',cls:'low'};
+}
+
+async function login(){
+  $('#loginMsg').textContent='กำลังเข้าสู่ระบบ…';
+  $('#loginBtn').disabled=true;
+  const {error}=await sb.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#password').value});
+  $('#loginBtn').disabled=false;
+  if(error){ $('#loginMsg').textContent=error.message; return; }
+  await load();
+}
+
+async function load(){
+  $('#loginMsg').textContent='';
+  const {data:{user},error:userError}=await sb.auth.getUser();
+  if(userError || !user) return;
+
+  const {data,error}=await sb.rpc('admin_list_attempts',{p_limit:500});
+  if(error){
+    $('#loginMsg').textContent='บัญชีนี้ยังไม่ได้รับสิทธิ์ admin หรือ RPC ไม่พร้อมใช้งาน';
+    return;
+  }
+
+  $('#loginView').classList.add('hidden');
+  $('#dash').classList.remove('hidden');
+  allAttempts=Array.isArray(data)?data:[];
+  updateMasterMetrics();
+  buildPersonOptions();
+  applyFilters();
+}
+
+function updateMasterMetrics(){
+  const arr=allAttempts;
+  $('#mAttempts').textContent=arr.length;
+  $('#mSubmitted').textContent=arr.filter(x=>x.status!=='in_progress').length;
+  $('#mLive').textContent=arr.filter(x=>x.status==='in_progress').length;
+  $('#mStudents').textContent=new Set(arr.map(x=>(x.student_name||'').trim()).filter(Boolean)).size;
+  const scored=arr.map(pct).filter(v=>Number.isFinite(v));
+  $('#mAvg').textContent=scored.length?(scored.reduce((a,b)=>a+b,0)/scored.length).toFixed(1)+'%':'—';
+  $('#mHigh').textContent=scored.filter(v=>v>=80).length;
+}
+
+function buildPersonOptions(){
+  const current=$('#personFilter').value;
+  const names=[...new Set(allAttempts.map(x=>(x.student_name||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'th'));
+  $('#personFilter').innerHTML='<option value="">ทุกคน</option>'+names.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  if(names.includes(current)) $('#personFilter').value=current;
+}
+
+function applyFilters(){
+  const q=$('#searchName').value.trim().toLowerCase();
+  const person=$('#personFilter').value;
+  const status=$('#statusFilter').value;
+  const scoreBand=$('#scoreFilter').value;
+  const tabBand=$('#tabFilter').value;
+  const sort=$('#sortFilter').value;
+
+  filteredAttempts=allAttempts.filter(x=>{
+    const name=(x.student_name||'').trim();
+    const p=pct(x);
+    const tabs=Number(x.tab_switches||0);
+    if(q && !name.toLowerCase().includes(q)) return false;
+    if(person && name!==person) return false;
+    if(status && x.status!==status) return false;
+    if(scoreBand==='80up' && !(p>=80)) return false;
+    if(scoreBand==='70_79' && !(p>=70&&p<80)) return false;
+    if(scoreBand==='50_69' && !(p>=50&&p<70)) return false;
+    if(scoreBand==='under50' && !(p<50)) return false;
+    if(scoreBand==='unscored' && p!==null) return false;
+    if(tabBand==='0' && tabs!==0) return false;
+    if(tabBand==='1_2' && !(tabs>=1&&tabs<=2)) return false;
+    if(tabBand==='3up' && !(tabs>=3)) return false;
+    return true;
+  });
+
+  filteredAttempts.sort((a,b)=>{
+    const pa=pct(a),pb=pct(b);
+    if(sort==='oldest') return new Date(a.started_at||0)-new Date(b.started_at||0);
+    if(sort==='score_desc') return (pb??-1)-(pa??-1);
+    if(sort==='score_asc') return (pa??999)-(pb??999);
+    if(sort==='tabs_desc') return Number(b.tab_switches||0)-Number(a.tab_switches||0);
+    if(sort==='name') return String(a.student_name||'').localeCompare(String(b.student_name||''),'th');
+    return new Date(b.started_at||0)-new Date(a.started_at||0);
+  });
+
+  $('#filterCount').textContent=`${filteredAttempts.length} รายการ`;
+  renderRows();
+  renderPersonSummary();
+}
+
+function renderRows(){
+  const body=$('#rows');
+  if(!filteredAttempts.length){
+    body.innerHTML='<tr><td colspan="9"><div class="empty">ไม่พบข้อมูลตามตัวกรองที่เลือก</div></td></tr>';
+    return;
+  }
+  body.innerHTML=filteredAttempts.map((x,i)=>{
+    const p=pct(x),risk=riskInfo(x.tab_switches);
+    return `<tr>
+      <td>${i+1}</td>
+      <td><strong>${escapeHtml(x.student_name)}</strong></td>
+      <td>${dt(x.started_at)}</td>
+      <td><span class="badge ${statusClass(x.status)}">${statusLabel(x.status)}</span></td>
+      <td>${x.score==null?'—':`${escapeHtml(x.score)}/${escapeHtml(x.total_questions)}`}</td>
+      <td><span class="score ${scoreClass(p)}">${p==null?'—':p.toFixed(1)+'%'}</span></td>
+      <td>${Number(x.tab_switches||0)}</td>
+      <td><span class="risk ${risk.cls}">${risk.text}</span></td>
+      <td><button class="ghost detail" data-id="${escapeHtml(x.id)}">ดู</button></td>
+    </tr>`;
+  }).join('');
+  document.querySelectorAll('.detail').forEach(b=>b.onclick=()=>detail(b.dataset.id));
+}
+
+function renderPersonSummary(){
+  const selected=$('#personFilter').value;
+  const card=$('#personCard');
+  if(!selected){card.classList.add('hidden');card.innerHTML='';return;}
+
+  const arr=allAttempts.filter(x=>(x.student_name||'').trim()===selected).sort((a,b)=>new Date(a.started_at||0)-new Date(b.started_at||0));
+  const scored=arr.map(pct).filter(v=>Number.isFinite(v));
+  const avg=scored.length?scored.reduce((a,b)=>a+b,0)/scored.length:null;
+  const best=scored.length?Math.max(...scored):null;
+  const latest=arr[arr.length-1];
+  const tabs=arr.reduce((s,x)=>s+Number(x.tab_switches||0),0);
+  const submitted=arr.filter(x=>x.status!=='in_progress').length;
+
+  const bars=arr.map((x,i)=>{
+    const v=pct(x); if(v==null) return '';
+    return `<div class="bar" style="height:${Math.max(4,Math.min(100,v))}%" data-label="ครั้ง ${i+1}: ${v.toFixed(1)}%"></div>`;
+  }).join('');
+
+  card.classList.remove('hidden');
+  card.innerHTML=`
+    <div class="sectionHead"><div><h2>${escapeHtml(selected)}</h2><div class="muted" style="font-size:12px">สรุปผลเฉพาะรายคน</div></div><span class="countPill">${arr.length} attempts</span></div>
+    <div class="personGrid">
+      <div class="personStat"><span>ค่าเฉลี่ย</span><b>${avg==null?'—':avg.toFixed(1)+'%'}</b></div>
+      <div class="personStat"><span>ดีที่สุด</span><b>${best==null?'—':best.toFixed(1)+'%'}</b></div>
+      <div class="personStat"><span>ส่งแล้ว</span><b>${submitted}/${arr.length}</b></div>
+      <div class="personStat"><span>เปลี่ยนแท็บรวม</span><b>${tabs}</b></div>
+      <div class="personStat"><span>ล่าสุด</span><b style="font-size:14px">${latest?dt(latest.started_at):'—'}</b></div>
+    </div>
+    ${bars?`<div class="trend" title="แนวโน้มคะแนนแต่ละครั้ง">${bars}</div>`:''}
+  `;
+}
+
+async function detail(id){
+  const {data,error}=await sb.rpc('admin_attempt_detail',{p_attempt_id:id});
+  if(error){alert(error.message);return;}
+  const r=data||{};
+  const d=$('#detailCard');
+  d.classList.remove('hidden');
+  const topics=Array.isArray(r.topics)?r.topics:[];
+  d.innerHTML=`
+    <div class="sectionHead"><h2>${escapeHtml(r.student_name)} — ${r.score??'—'}/${r.total??'—'}</h2><button id="closeDetail" class="ghost">ปิด</button></div>
+    <div class="detailMeta">
+      <span>เวลา ${Math.round(Number(r.time_used_seconds||0)/60)} นาที</span>
+      <span>ไม่ตอบ ${Number(r.unanswered||0)} ข้อ</span>
+      <span>เปลี่ยนแท็บ ${Number(r.tab_switches||0)} ครั้ง</span>
+    </div>
+    <h3>ผลแยกตามหัวข้อ</h3>
+    <div>${topics.length?topics.map(t=>{
+      const a=Math.max(0,Math.min(100,Number(t.accuracy||0)));
+      return `<div class="topic"><div class="topicRow"><strong>${escapeHtml(t.name)}</strong><span>${a.toFixed(1)}% (${Number(t.correct||0)}/${Number(t.total||0)})</span></div><div class="progress"><i style="width:${a}%"></i></div></div>`;
+    }).join(''):'<p class="muted">ไม่มีข้อมูลหัวข้อ</p>'}</div>`;
+  $('#closeDetail').onclick=()=>d.classList.add('hidden');
+  d.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function exportCSV(){
+  if(!filteredAttempts.length){alert('ไม่มีข้อมูลสำหรับ Export');return;}
+  const rows=[['student_name','started_at','status','score','total_questions','percent','tab_switches']];
+  filteredAttempts.forEach(x=>rows.push([
+    x.student_name||'',x.started_at||'',x.status||'',x.score??'',x.total_questions??'',pct(x)?.toFixed(2)??'',x.tab_switches??0
+  ]));
+  const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`posn-biology-results-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+
+function resetFilters(){
+  $('#searchName').value='';$('#personFilter').value='';$('#statusFilter').value='';$('#scoreFilter').value='';$('#tabFilter').value='';$('#sortFilter').value='newest';applyFilters();
+}
+
+$('#loginBtn').onclick=login;
+$('#password').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
+$('#logoutBtn').onclick=async()=>{await sb.auth.signOut();location.reload()};
+$('#refreshBtn').onclick=load;
+$('#exportBtn').onclick=exportCSV;
+$('#resetFilterBtn').onclick=resetFilters;
+['searchName','personFilter','statusFilter','scoreFilter','tabFilter','sortFilter'].forEach(id=>{
+  $('#'+id).addEventListener(id==='searchName'?'input':'change',applyFilters);
+});
+
+sb.auth.onAuthStateChange((event)=>{
+  if(event==='SIGNED_OUT') location.reload();
+});
+load();
+</script>
+</body>
+</html>

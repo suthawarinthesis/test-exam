@@ -61,9 +61,20 @@
     .topic{margin:12px 0}.topicRow{display:flex;justify-content:space-between;gap:10px;margin-bottom:5px}.progress{height:9px;background:#edf3f1;border-radius:999px;overflow:hidden}.progress>i{display:block;height:100%;background:var(--teal);border-radius:999px}
     .detailMeta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.detailMeta span{background:var(--paper);border:1px solid var(--line);padding:7px 9px;border-radius:10px;font-size:12px}
     .notice{padding:11px 12px;border-radius:12px;background:#fff8f5;border:1px solid #ffd8c7;color:#8a3a17;font-size:12px}
-    @media(max-width:1100px){.metrics{grid-template-columns:repeat(3,1fr)}.toolbar{grid-template-columns:repeat(3,1fr)}.personGrid{grid-template-columns:repeat(3,1fr)}}
-    @media(max-width:780px){.login,.help{grid-column:1/-1}.metrics{grid-template-columns:1fr 1fr}.toolbar{grid-template-columns:1fr 1fr}.personGrid{grid-template-columns:1fr 1fr}.card{padding:16px}}
-    @media(max-width:520px){.toolbar,.metrics,.personGrid{grid-template-columns:1fr}.top{align-items:flex-start}.actions{width:100%}.actions button{flex:1}}
+    .analyticsGrid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:13px;margin-bottom:13px}
+    .analyticsGrid .span4{grid-column:span 4}.analyticsGrid .span6{grid-column:span 6}.analyticsGrid .span8{grid-column:span 8}.analyticsGrid .span12{grid-column:1/-1}
+    .chartBox{min-height:270px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .chartBox svg{width:100%;height:270px;display:block}.chartEmpty{color:var(--muted);font-size:13px;text-align:center;padding:40px 12px}
+    .chartLegend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:8px}.legendDot{width:9px;height:9px;border-radius:99px;background:var(--teal);display:inline-block;margin-right:5px}.legendDot.orange{background:var(--orange)}
+    .insightList{display:grid;gap:8px;margin-top:10px}.insight{padding:11px 12px;border:1px solid var(--line);border-radius:14px;background:var(--paper);font-size:12px;line-height:1.55}.insight strong{display:block;font-size:13px;margin-bottom:2px}
+    .benchHero{display:grid;grid-template-columns:1.25fr .75fr;gap:14px}.benchRate{display:grid;place-items:center;min-height:185px;border-radius:20px;background:linear-gradient(145deg,var(--ink),#24545a);color:#fff;text-align:center;padding:20px}.benchRate b{font-size:48px;line-height:1}.benchRate span{font-size:11px;color:#bdd4d0;margin-top:6px}
+    .benchMeta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.benchMeta div{border:1px solid var(--line);background:var(--paper);border-radius:14px;padding:11px}.benchMeta span{display:block;font-size:10px;color:var(--muted);margin-bottom:4px}.benchMeta b{font-size:16px}
+    .benchForm{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-top:12px}.sourceList{margin-top:12px;display:grid;gap:8px}.sourceRow{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 11px;border:1px solid var(--line);border-radius:13px;background:#fff}.sourceRow a{color:var(--teal2);font-weight:800;text-decoration:none;font-size:12px}.sourceRow small{color:var(--muted);line-height:1.45}
+    .topicControls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.loadingBar{height:7px;border-radius:99px;background:#edf3f1;overflow:hidden;margin-top:10px}.loadingBar i{display:block;height:100%;width:0;background:var(--teal);transition:.2s}.tiny{font-size:11px;color:var(--muted)}
+    .rankList{display:grid;gap:7px;width:100%}.rankRow{display:grid;grid-template-columns:minmax(120px,1.1fr) 2fr 55px;gap:8px;align-items:center;font-size:11px}.rankTrack{height:10px;background:#edf3f1;border-radius:99px;overflow:hidden}.rankTrack i{display:block;height:100%;background:var(--teal);border-radius:99px}.rankName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}.rankScore{text-align:right;font-weight:900}
+    @media(max-width:1100px){.metrics{grid-template-columns:repeat(3,1fr)}.toolbar{grid-template-columns:repeat(3,1fr)}.personGrid{grid-template-columns:repeat(3,1fr)}.analyticsGrid .span4,.analyticsGrid .span8{grid-column:span 6}}
+    @media(max-width:780px){.login,.help{grid-column:1/-1}.metrics{grid-template-columns:1fr 1fr}.toolbar{grid-template-columns:1fr 1fr}.personGrid{grid-template-columns:1fr 1fr}.card{padding:16px}.analyticsGrid .span4,.analyticsGrid .span6,.analyticsGrid .span8{grid-column:1/-1}.benchHero{grid-template-columns:1fr}.benchForm{grid-template-columns:1fr 1fr}.benchForm button{grid-column:1/-1}}
+    @media(max-width:520px){.toolbar,.metrics,.personGrid,.benchMeta,.benchForm{grid-template-columns:1fr}.top{align-items:flex-start}.actions{width:100%}.actions button{flex:1}.rankRow{grid-template-columns:100px 1fr 48px}.benchForm button{grid-column:auto}}
   </style>
 </head>
 <body>
@@ -116,6 +127,69 @@
 
     <div id="personCard" class="card full hidden" style="margin-bottom:13px"></div>
 
+    <div class="analyticsGrid">
+      <section class="card span6">
+        <div class="sectionHead"><div><h2>Score Distribution</h2><div class="muted" style="font-size:12px">การกระจายคะแนนของผลที่กำลังกรองอยู่</div></div><span id="histN" class="countPill">n=0</span></div>
+        <div id="scoreHistogram" class="chartBox"></div>
+      </section>
+      <section class="card span6">
+        <div class="sectionHead"><div><h2>Performance Trend</h2><div class="muted" style="font-size:12px">ค่าเฉลี่ยคะแนนตามวันที่สอบ</div></div><span id="trendRange" class="countPill">—</span></div>
+        <div id="scoreTrend" class="chartBox"></div>
+      </section>
+      <section class="card span4">
+        <div class="sectionHead"><div><h2>Attempt Status</h2><div class="muted" style="font-size:12px">สัดส่วนสถานะผลสอบ</div></div></div>
+        <div id="statusDonut" class="chartBox"></div>
+      </section>
+      <section class="card span8">
+        <div class="sectionHead"><div><h2>Student Ranking</h2><div class="muted" style="font-size:12px">เรียงตามค่าเฉลี่ยของผลที่มีคะแนน</div></div><span class="countPill">Top 10</span></div>
+        <div id="studentRanking" class="chartBox" style="align-items:flex-start;padding-top:8px"></div>
+      </section>
+      <section class="card span6">
+        <div class="sectionHead"><div><h2>Tab-switch × Score</h2><div class="muted" style="font-size:12px">ดู pattern ของการเปลี่ยนแท็บเทียบคะแนน</div></div></div>
+        <div id="tabScatter" class="chartBox"></div>
+        <div class="tiny">ใช้เพื่อดูแนวโน้มเท่านั้น จำนวนครั้งเปลี่ยนแท็บไม่ใช่หลักฐานยืนยันการทุจริต</div>
+      </section>
+      <section class="card span6">
+        <div class="sectionHead"><div><h2>Analytics Insights</h2><div class="muted" style="font-size:12px">สรุปอัตโนมัติจากผลที่กรอง</div></div></div>
+        <div id="analyticsInsights" class="insightList"></div>
+      </section>
+
+      <section class="card span12">
+        <div class="sectionHead">
+          <div><h2>Topic Analytics</h2><div class="muted" style="font-size:12px">รวมผลรายหัวข้อจากรายละเอียดการสอบ — โหลดเมื่อจำเป็นเพื่อลดจำนวน RPC</div></div>
+          <div class="topicControls"><span id="topicSample" class="countPill">ยังไม่โหลด</span><button id="loadTopicBtn" class="soft">วิเคราะห์รายหัวข้อ</button></div>
+        </div>
+        <div id="topicLoadStatus" class="tiny"></div><div class="loadingBar"><i id="topicLoadBar"></i></div>
+        <div id="topicAnalytics" class="chartBox" style="min-height:310px"></div>
+      </section>
+
+      <section class="card span12">
+        <div class="sectionHead">
+          <div><h2>POSN Biology • Public Benchmark</h2><div class="muted" style="font-size:12px">อัตราคัดเลือกจากข้อมูลสาธารณะ — คำนวณเฉพาะเมื่อมีทั้งตัวตั้งและตัวหาร</div></div>
+          <button id="refreshBenchmarkBtn" class="ghost">ดึง Benchmark JSON</button>
+        </div>
+        <div class="benchHero">
+          <div>
+            <div id="benchmarkTitle" style="font-weight:900;font-size:17px">ศูนย์ สอวน. มหาวิทยาลัยเกษตรศาสตร์ • ชีววิทยา 2568</div>
+            <p id="benchmarkNote" class="muted" style="font-size:12px;line-height:1.65;margin:7px 0 0"></p>
+            <div class="benchMeta">
+              <div><span>จำนวนรับ</span><b id="benchSeats">70</b></div>
+              <div><span>ผู้มีสิทธิ์สอบ/ฐาน</span><b id="benchEligible">—</b></div>
+              <div><span>ปีข้อมูล</span><b id="benchYear">2568</b></div>
+            </div>
+            <div class="benchForm">
+              <div class="field"><label>ใส่จำนวนผู้มีสิทธิ์สอบจากประกาศสาธารณะ</label><input id="benchEligibleInput" type="number" min="1" step="1" placeholder="เช่น 1,250"></div>
+              <div class="field"><label>จำนวนรับ</label><input id="benchSeatsInput" type="number" min="1" step="1" value="70"></div>
+              <button id="calcBenchBtn" class="soft">คำนวณ %</button>
+            </div>
+            <div id="benchmarkSimulation" class="notice" style="margin-top:10px;background:#f7fbfa;border-color:var(--line);color:var(--ink)"></div>
+          </div>
+          <div class="benchRate"><div><b id="benchRate">—</b><div>Public selection rate</div><span id="benchRateSub">รอตัวหารที่ตรวจสอบได้</span></div></div>
+        </div>
+        <div id="benchmarkSources" class="sourceList"></div>
+      </section>
+    </div>
+
     <div class="card full">
       <div class="sectionHead">
         <h2>ผลการสอบ</h2>
@@ -145,6 +219,25 @@ const sb = supabase.createClient(
 const $ = s => document.querySelector(s);
 let allAttempts = [];
 let filteredAttempts = [];
+const detailCache = new Map();
+let currentPublicBenchmark = null;
+const PUBLIC_BENCHMARK_FILE = 'posn_public_benchmarks.json';
+const FALLBACK_PUBLIC_BENCHMARKS = [
+  {
+    id:'ku-bio-2568', year:2568, subject:'ชีววิทยา', center:'ศูนย์ สอวน. มหาวิทยาลัยเกษตรศาสตร์',
+    seats:70, eligible:null, rate:null,
+    source_url:'https://sci.ku.ac.th/web2024/wp-content/uploads/2025/07/20250709083735748.pdf',
+    result_url:'https://sci.ku.ac.th/web2024/39012-2/',
+    note:'ประกาศรับสมัครระบุจำนวนรับชีววิทยารวม 70 คน (2 ศูนย์ ศูนย์ละ 35 คน) แต่หน้าสาธารณะที่ตรวจสอบได้ในชุดข้อมูลนี้ยังไม่มีจำนวนผู้มีสิทธิ์สอบรวมที่ใช้เป็นตัวหาร จึงไม่สร้างเปอร์เซ็นต์ขึ้นเอง'
+  },
+  {
+    id:'psu-bio-2569', year:2569, subject:'ชีววิทยา', center:'ศูนย์ สอวน. มหาวิทยาลัยสงขลานครินทร์',
+    seats:70, eligible:null, rate:null,
+    source_url:'https://scisys.sci.psu.ac.th/olympiccamp/File/0015_%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8%20%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B8%AA%E0%B8%AD%E0%B8%9A%E0%B8%84%E0%B8%B1%E0%B8%94%E0%B9%80%E0%B8%A5%E0%B8%B7%E0%B8%AD%E0%B8%81%E0%B8%99%E0%B8%B1%E0%B8%81%E0%B9%80%E0%B8%A3%E0%B8%B5%E0%B8%A2%E0%B8%99%E0%B9%80%E0%B8%9E%E0%B8%B7%E0%B9%88%E0%B8%AD%E0%B9%80%E0%B8%82%E0%B9%89%E0%B8%B2%E0%B8%84%E0%B9%88%E0%B8%B2%E0%B8%A2%E0%B8%9D%E0%B8%B6%E0%B8%81%E0%B8%AD%E0%B8%9A%E0%B8%A3%E0%B8%A1_.pdf',
+    result_url:null,
+    note:'ประกาศรับสมัครปีการศึกษา 2569 ระบุจำนวนรับชีววิทยา 70 คน; ตัวหารจำนวนผู้มีสิทธิ์สอบจริงต้องมาจากประกาศรายชื่อผู้มีสิทธิ์สอบจึงจะคำนวณอัตราคัดเลือกได้'
+  }
+];
 
 function dt(x){
   return x ? new Date(x).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'}) : '—';
@@ -254,6 +347,112 @@ function applyFilters(){
   $('#filterCount').textContent=`${filteredAttempts.length} รายการ`;
   renderRows();
   renderPersonSummary();
+  renderAnalytics();
+}
+
+function svgEl(tag,attrs={}){
+  const ns='http://www.w3.org/2000/svg',el=document.createElementNS(ns,tag);
+  Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v)); return el;
+}
+function clearBox(id,msg='ไม่มีข้อมูลเพียงพอ'){
+  const el=$(id); if(!el)return; el.innerHTML=`<div class="chartEmpty">${escapeHtml(msg)}</div>`;
+}
+function niceDateKey(x){
+  if(!x)return null; const d=new Date(x); if(Number.isNaN(d.getTime()))return null;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function shortDate(key){
+  const d=new Date(key+'T00:00:00'); return d.toLocaleDateString('th-TH',{day:'numeric',month:'short'});
+}
+function renderBarSvg(selector,labels,values,{suffix='',maxValue=null,horizontal=false}={}){
+  const host=$(selector); host.innerHTML='';
+  if(!values.length || !values.some(v=>Number(v)>0)){clearBox(selector);return;}
+  if(horizontal){
+    const max=Math.max(maxValue||0,...values,1); const rows=labels.map((name,i)=>({name,val:Number(values[i]||0)}));
+    host.innerHTML=`<div class="rankList">${rows.map(r=>`<div class="rankRow"><div class="rankName" title="${escapeHtml(r.name)}">${escapeHtml(r.name)}</div><div class="rankTrack"><i style="width:${Math.max(0,Math.min(100,r.val/max*100))}%"></i></div><div class="rankScore">${r.val.toFixed(1)}${suffix}</div></div>`).join('')}</div>`; return;
+  }
+  const W=720,H=250,p={l:42,r:12,t:14,b:42},cw=W-p.l-p.r,ch=H-p.t-p.b,max=Math.max(maxValue||0,...values,1),gap=8,bw=Math.max(10,(cw-gap*(values.length-1))/values.length);
+  const svg=svgEl('svg',{viewBox:`0 0 ${W} ${H}`,'aria-label':'bar chart'});
+  [0,.25,.5,.75,1].forEach(f=>{const y=p.t+ch*(1-f);svg.appendChild(svgEl('line',{x1:p.l,y1:y,x2:W-p.r,y2:y,stroke:'#e6eeec','stroke-width':1}));const t=svgEl('text',{x:p.l-6,y:y+4,'text-anchor':'end','font-size':9,fill:'#6b7c79'});t.textContent=(max*f).toFixed(max<=10?1:0)+suffix;svg.appendChild(t)});
+  values.forEach((v,i)=>{v=Number(v||0);const x=p.l+i*(bw+gap),h=Math.max(1,v/max*ch),y=p.t+ch-h;const rect=svgEl('rect',{x,y,width:bw,height:h,rx:6,fill:'#006c64'});const title=svgEl('title');title.textContent=`${labels[i]}: ${v}${suffix}`;rect.appendChild(title);svg.appendChild(rect);const tx=svgEl('text',{x:x+bw/2,y:H-18,'text-anchor':'middle','font-size':9,fill:'#6b7c79'});tx.textContent=labels[i];svg.appendChild(tx)});
+  host.appendChild(svg);
+}
+function renderLineSvg(selector,points){
+  const host=$(selector);host.innerHTML=''; if(points.length<1){clearBox(selector);return;}
+  const W=720,H=250,p={l:42,r:14,t:14,b:40},cw=W-p.l-p.r,ch=H-p.t-p.b,max=100,min=0;
+  const svg=svgEl('svg',{viewBox:`0 0 ${W} ${H}`});
+  [0,25,50,75,100].forEach(v=>{const y=p.t+ch*(1-v/100);svg.appendChild(svgEl('line',{x1:p.l,y1:y,x2:W-p.r,y2:y,stroke:'#e6eeec'}));const t=svgEl('text',{x:p.l-7,y:y+4,'text-anchor':'end','font-size':9,fill:'#6b7c79'});t.textContent=v+'%';svg.appendChild(t)});
+  const coords=points.map((pt,i)=>({x:p.l+(points.length===1?cw/2:i*cw/(points.length-1)),y:p.t+ch*(1-(pt.value-min)/(max-min)),...pt}));
+  if(coords.length>1){const path=svgEl('path',{d:coords.map((c,i)=>(i?'L':'M')+c.x+' '+c.y).join(' '),fill:'none',stroke:'#006c64','stroke-width':3,'stroke-linejoin':'round','stroke-linecap':'round'});svg.appendChild(path)}
+  coords.forEach((c,i)=>{const dot=svgEl('circle',{cx:c.x,cy:c.y,r:4,fill:'#f26632',stroke:'#fff','stroke-width':2});const title=svgEl('title');title.textContent=`${c.label}: ${c.value.toFixed(1)}% (${c.count} ครั้ง)`;dot.appendChild(title);svg.appendChild(dot);if(points.length<=10 || i===0 || i===points.length-1 || i%Math.ceil(points.length/6)===0){const tx=svgEl('text',{x:c.x,y:H-17,'text-anchor':'middle','font-size':9,fill:'#6b7c79'});tx.textContent=c.short;svg.appendChild(tx)}});
+  host.appendChild(svg);
+}
+function renderScatterSvg(selector,rows){
+  const host=$(selector);host.innerHTML=''; if(!rows.length){clearBox(selector);return;}
+  const W=720,H=250,p={l:42,r:20,t:14,b:42},cw=W-p.l-p.r,ch=H-p.t-p.b,maxX=Math.max(3,...rows.map(r=>r.x)),maxY=100;
+  const svg=svgEl('svg',{viewBox:`0 0 ${W} ${H}`});
+  [0,25,50,75,100].forEach(v=>{const y=p.t+ch*(1-v/100);svg.appendChild(svgEl('line',{x1:p.l,y1:y,x2:W-p.r,y2:y,stroke:'#e6eeec'}));const t=svgEl('text',{x:p.l-6,y:y+3,'text-anchor':'end','font-size':9,fill:'#6b7c79'});t.textContent=v+'%';svg.appendChild(t)});
+  for(let x=0;x<=maxX;x++){if(maxX>12 && x%Math.ceil(maxX/6))continue;const px=p.l+cw*x/maxX;const t=svgEl('text',{x:px,y:H-17,'text-anchor':'middle','font-size':9,fill:'#6b7c79'});t.textContent=x;svg.appendChild(t)}
+  rows.forEach(r=>{const cx=p.l+cw*r.x/maxX,cy=p.t+ch*(1-r.y/maxY),c=svgEl('circle',{cx,cy,r:4.5,fill:'#006c64','fill-opacity':.62});const title=svgEl('title');title.textContent=`${r.name}: ${r.y.toFixed(1)}%, เปลี่ยนแท็บ ${r.x} ครั้ง`;c.appendChild(title);svg.appendChild(c)});host.appendChild(svg);
+}
+function renderDonut(selector,parts){
+  const host=$(selector);host.innerHTML=''; const total=parts.reduce((s,p)=>s+p.value,0); if(!total){clearBox(selector);return;}
+  let deg=0;const colors=['#006c64','#f26632','#a8bbb7'];const stops=parts.map((p,i)=>{const start=deg;deg+=p.value/total*360;return `${colors[i%colors.length]} ${start}deg ${deg}deg`}).join(',');
+  host.innerHTML=`<div style="display:grid;grid-template-columns:145px 1fr;gap:18px;align-items:center;width:100%;max-width:420px"><div style="width:145px;height:145px;border-radius:50%;background:conic-gradient(${stops});position:relative"><div style="position:absolute;inset:28px;background:#fff;border-radius:50%;display:grid;place-items:center;text-align:center"><b style="font-size:26px">${total}</b><span class="tiny">attempts</span></div></div><div class="insightList">${parts.map((p,i)=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:12px"><span><i class="legendDot" style="background:${colors[i%colors.length]}"></i>${escapeHtml(p.label)}</span><b>${p.value} (${(p.value/total*100).toFixed(1)}%)</b></div>`).join('')}</div></div>`;
+}
+function groupStudentStats(arr){
+  const m=new Map();arr.forEach(x=>{const n=(x.student_name||'').trim();const v=pct(x);if(!n||v==null)return;if(!m.has(n))m.set(n,[]);m.get(n).push(v)});
+  return [...m].map(([name,a])=>({name,avg:a.reduce((s,v)=>s+v,0)/a.length,best:Math.max(...a),n:a.length}));
+}
+function percentileOfScore(score,stats){
+  if(!Number.isFinite(score)||!stats.length)return null;return stats.filter(s=>s.avg<=score).length/stats.length*100;
+}
+function renderAnalytics(){
+  const scored=filteredAttempts.filter(x=>pct(x)!=null),scores=scored.map(pct);
+  $('#histN').textContent=`n=${scores.length}`;
+  const buckets=[{l:'<50',a:0,b:50},{l:'50–59',a:50,b:60},{l:'60–69',a:60,b:70},{l:'70–79',a:70,b:80},{l:'80–89',a:80,b:90},{l:'90–100',a:90,b:101}];
+  renderBarSvg('#scoreHistogram',buckets.map(x=>x.l),buckets.map(x=>scores.filter(v=>v>=x.a&&v<x.b).length));
+  const daily=new Map();scored.forEach(x=>{const k=niceDateKey(x.started_at);if(!k)return;if(!daily.has(k))daily.set(k,[]);daily.get(k).push(pct(x))});
+  const points=[...daily].sort((a,b)=>a[0].localeCompare(b[0])).map(([k,a])=>({label:k,short:shortDate(k),value:a.reduce((s,v)=>s+v,0)/a.length,count:a.length}));
+  renderLineSvg('#scoreTrend',points);$('#trendRange').textContent=points.length?`${points[0].short} → ${points[points.length-1].short}`:'—';
+  renderDonut('#statusDonut',[{label:'ส่งแล้ว',value:filteredAttempts.filter(x=>x.status==='submitted').length},{label:'กำลังทำ',value:filteredAttempts.filter(x=>x.status==='in_progress').length},{label:'อื่น/หมดเวลา',value:filteredAttempts.filter(x=>!['submitted','in_progress'].includes(x.status)).length}]);
+  const students=groupStudentStats(filteredAttempts).sort((a,b)=>b.avg-a.avg).slice(0,10);renderBarSvg('#studentRanking',students.map(x=>x.name),students.map(x=>x.avg),{suffix:'%',maxValue:100,horizontal:true});
+  renderScatterSvg('#tabScatter',scored.map(x=>({x:Number(x.tab_switches||0),y:pct(x),name:x.student_name||'—'})));
+  renderInsights(scored,students);
+  updateBenchmarkSimulation();
+}
+function renderInsights(scored,students){
+  const box=$('#analyticsInsights');const scores=scored.map(pct); if(!scores.length){box.innerHTML='<div class="chartEmpty">ยังไม่มีผลที่มีคะแนน</div>';return;}
+  const avg=scores.reduce((a,b)=>a+b,0)/scores.length;const sorted=[...scores].sort((a,b)=>a-b);const median=sorted.length%2?sorted[(sorted.length-1)/2]:(sorted[sorted.length/2-1]+sorted[sorted.length/2])/2;const hi=scores.filter(v=>v>=80).length/scores.length*100;const low=scores.filter(v=>v<60).length/scores.length*100;
+  const tabs=scored.map(x=>Number(x.tab_switches||0));const tabAvg=tabs.reduce((a,b)=>a+b,0)/tabs.length;
+  const trendByDate=new Map();scored.forEach(x=>{const k=niceDateKey(x.started_at);if(k){if(!trendByDate.has(k))trendByDate.set(k,[]);trendByDate.get(k).push(pct(x))}});const ds=[...trendByDate].sort((a,b)=>a[0].localeCompare(b[0])).map(([k,a])=>a.reduce((s,v)=>s+v,0)/a.length);let delta=ds.length>1?ds[ds.length-1]-ds[0]:null;
+  box.innerHTML=`<div class="insight"><strong>คะแนนกลางของกลุ่ม</strong>เฉลี่ย ${avg.toFixed(1)}% • median ${median.toFixed(1)}%</div><div class="insight"><strong>สัดส่วนคะแนนสูง</strong>${hi.toFixed(1)}% ของ attempts ได้ ≥80% และ ${low.toFixed(1)}% ต่ำกว่า 60%</div><div class="insight"><strong>แนวโน้มตามเวลา</strong>${delta==null?'ข้อมูลวันที่ยังไม่พอ':`${delta>=0?'เพิ่ม':'ลด'} ${Math.abs(delta).toFixed(1)} จุดเปอร์เซ็นต์ จากวันแรกถึงวันล่าสุด`}</div><div class="insight"><strong>พฤติกรรมเปลี่ยนแท็บ</strong>เฉลี่ย ${tabAvg.toFixed(1)} ครั้ง/attempt — ใช้เป็นสัญญาณประกอบ ไม่ควรตีความเป็นการทุจริตโดยลำพัง</div>`;
+}
+async function getAttemptDetailCached(id){
+  if(detailCache.has(id))return detailCache.get(id);const {data,error}=await sb.rpc('admin_attempt_detail',{p_attempt_id:id});if(error)throw error;detailCache.set(id,data||{});return data||{};
+}
+async function loadTopicAnalytics(){
+  const btn=$('#loadTopicBtn');btn.disabled=true;const candidates=filteredAttempts.filter(x=>x.status!=='in_progress'&&x.id).slice(0,80);if(!candidates.length){$('#topicLoadStatus').textContent='ไม่มี attempt ที่ส่งแล้วในตัวกรองนี้';btn.disabled=false;clearBox('#topicAnalytics','ไม่มีข้อมูล');return;}
+  $('#topicLoadStatus').textContent=`กำลังโหลดรายละเอียด 0/${candidates.length}`;$('#topicLoadBar').style.width='0%';const agg=new Map();let done=0,index=0,failed=0;
+  async function worker(){while(index<candidates.length){const i=index++,x=candidates[i];try{const r=await getAttemptDetailCached(x.id);(r.topics||[]).forEach(t=>{const key=t.name||'ไม่ระบุหัวข้อ';if(!agg.has(key))agg.set(key,{correct:0,total:0});const a=agg.get(key);a.correct+=Number(t.correct||0);a.total+=Number(t.total||0)})}catch(e){failed++}finally{done++;$('#topicLoadStatus').textContent=`กำลังโหลดรายละเอียด ${done}/${candidates.length}${failed?` • ล้มเหลว ${failed}`:''}`;$('#topicLoadBar').style.width=(done/candidates.length*100)+'%'}}}
+  await Promise.all(Array.from({length:Math.min(6,candidates.length)},worker));btn.disabled=false;const rows=[...agg].map(([name,a])=>({name,accuracy:a.total?a.correct/a.total*100:0,total:a.total})).sort((a,b)=>a.accuracy-b.accuracy);$('#topicSample').textContent=`${candidates.length-failed} attempts`;
+  if(!rows.length){clearBox('#topicAnalytics','ไม่พบข้อมูลหัวข้อจาก RPC');return;}renderBarSvg('#topicAnalytics',rows.map(x=>x.name),rows.map(x=>x.accuracy),{suffix:'%',maxValue:100,horizontal:true});$('#topicLoadStatus').textContent=`โหลดสำเร็จ • เรียงจากหัวข้อที่ควรทบทวนมากที่สุด → แข็งแรงที่สุด`;
+}
+function setBenchmark(b){
+  currentPublicBenchmark=b||FALLBACK_PUBLIC_BENCHMARKS[0];const rate=currentPublicBenchmark.rate??(currentPublicBenchmark.seats&&currentPublicBenchmark.eligible?currentPublicBenchmark.seats/currentPublicBenchmark.eligible*100:null);
+  $('#benchmarkTitle').textContent=`${currentPublicBenchmark.center} • ${currentPublicBenchmark.subject} ${currentPublicBenchmark.year}`;$('#benchmarkNote').textContent=currentPublicBenchmark.note||'';$('#benchSeats').textContent=currentPublicBenchmark.seats??'—';$('#benchEligible').textContent=currentPublicBenchmark.eligible??'—';$('#benchYear').textContent=currentPublicBenchmark.year??'—';$('#benchSeatsInput').value=currentPublicBenchmark.seats??'';$('#benchEligibleInput').value=currentPublicBenchmark.eligible??'';$('#benchRate').textContent=rate==null?'—':rate.toFixed(2)+'%';$('#benchRateSub').textContent=rate==null?'รอตัวหารที่ตรวจสอบได้':`${currentPublicBenchmark.seats}/${currentPublicBenchmark.eligible}`;
+  $('#benchmarkSources').innerHTML=FALLBACK_PUBLIC_BENCHMARKS.map(x=>`<div class="sourceRow"><div><b style="font-size:12px">${escapeHtml(x.center)} • ${escapeHtml(x.year)}</b><br><small>${escapeHtml(x.note)}</small></div><div style="display:grid;gap:5px;white-space:nowrap"><a href="${x.source_url}" target="_blank" rel="noopener">แหล่งรับสมัคร ↗</a>${x.result_url?`<a href="${x.result_url}" target="_blank" rel="noopener">ผลคัดเลือก ↗</a>`:''}</div></div>`).join('');updateBenchmarkSimulation();
+}
+function calcBenchmark(){
+  const eligible=Number($('#benchEligibleInput').value),seats=Number($('#benchSeatsInput').value);if(!(eligible>0&&seats>0&&seats<=eligible)){alert('กรุณาใส่จำนวนผู้มีสิทธิ์สอบและจำนวนรับให้ถูกต้อง');return;}currentPublicBenchmark={...(currentPublicBenchmark||FALLBACK_PUBLIC_BENCHMARKS[0]),eligible,seats,rate:seats/eligible*100,note:'คำนวณจากจำนวนที่กรอกโดยผู้ดูแล โปรดตรวจเลขทั้งสองค่ากับประกาศสาธารณะก่อนใช้อ้างอิง'};setBenchmark(currentPublicBenchmark);
+}
+function updateBenchmarkSimulation(){
+  const box=$('#benchmarkSimulation');if(!box)return;const b=currentPublicBenchmark||FALLBACK_PUBLIC_BENCHMARKS[0];const rate=b.rate??(b.seats&&b.eligible?b.seats/b.eligible*100:null);const stats=groupStudentStats(filteredAttempts).sort((a,b)=>b.avg-a.avg);
+  if(rate==null){box.innerHTML='<strong>ยังไม่คำนวณ Public selection rate</strong><br>แหล่งทางการที่ใส่มาในระบบยืนยัน “จำนวนรับ” ได้ แต่ยังไม่มีจำนวนผู้มีสิทธิ์สอบรวมที่ตรวจสอบได้จากหน้าเดียวกัน จึงไม่เดาเปอร์เซ็นต์';return;}
+  const keep=Math.max(1,Math.ceil(stats.length*rate/100)),cut=stats.length?stats[Math.min(keep-1,stats.length-1)].avg:null;box.innerHTML=`<strong>Benchmark = ${rate.toFixed(2)}%</strong><br>${stats.length?`ถ้านำ “สัดส่วนรับ” นี้มาจำลองกับผู้สอบ mock ${stats.length} คน จะเทียบเท่าประมาณ top ${keep} คน และ cutoff ภายในชุด mock ปัจจุบัน ≈ ${cut.toFixed(1)}%. นี่เป็นการเทียบสัดส่วน ไม่ใช่การทำนายโอกาสติดจริง`:'ยังไม่มีข้อมูลนักเรียนในตัวกรองสำหรับจำลอง'}`;
+}
+async function refreshBenchmark(){
+  const btn=$('#refreshBenchmarkBtn');btn.disabled=true;try{const r=await fetch(PUBLIC_BENCHMARK_FILE,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const data=await r.json();if(!Array.isArray(data)||!data.length)throw new Error('รูปแบบ JSON ไม่ถูกต้อง');const bio=data.filter(x=>x.subject==='ชีววิทยา').sort((a,b)=>Number(b.year||0)-Number(a.year||0));const exact=bio[0]||data[0];FALLBACK_PUBLIC_BENCHMARKS.splice(0,FALLBACK_PUBLIC_BENCHMARKS.length,...data);setBenchmark(exact);btn.textContent='อัปเดตแล้ว ✓'}catch(e){setBenchmark(currentPublicBenchmark||FALLBACK_PUBLIC_BENCHMARKS[0]);btn.textContent='ใช้ Snapshot ในไฟล์';}finally{setTimeout(()=>{btn.textContent='ดึง Benchmark JSON';btn.disabled=false},1800)}
 }
 
 function renderRows(){
@@ -312,9 +511,8 @@ function renderPersonSummary(){
 }
 
 async function detail(id){
-  const {data,error}=await sb.rpc('admin_attempt_detail',{p_attempt_id:id});
-  if(error){alert(error.message);return;}
-  const r=data||{};
+  let r={};
+  try{r=await getAttemptDetailCached(id)}catch(error){alert(error.message||String(error));return;}
   const d=$('#detailCard');
   d.classList.remove('hidden');
   const topics=Array.isArray(r.topics)?r.topics:[];
@@ -361,6 +559,10 @@ $('#resetFilterBtn').onclick=resetFilters;
 ['searchName','personFilter','statusFilter','scoreFilter','tabFilter','sortFilter'].forEach(id=>{
   $('#'+id).addEventListener(id==='searchName'?'input':'change',applyFilters);
 });
+$('#loadTopicBtn').onclick=loadTopicAnalytics;
+$('#calcBenchBtn').onclick=calcBenchmark;
+$('#refreshBenchmarkBtn').onclick=refreshBenchmark;
+setBenchmark([...FALLBACK_PUBLIC_BENCHMARKS].sort((a,b)=>Number(b.year||0)-Number(a.year||0))[0]);
 
 sb.auth.onAuthStateChange((event)=>{
   if(event==='SIGNED_OUT') location.reload();

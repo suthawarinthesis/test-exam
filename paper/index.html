@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0f766e" />
+  <title>AnswerFlow — Smart Bubble Sheet</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{
+      --bg:#f3f7f6;--paper:#ffffff;--ink:#173238;--muted:#6d7f7c;--line:#dce7e4;
+      --teal:#006c64;--teal2:#0f766e;--mint:#e7f1ef;--mint2:#f0f7f5;--orange:#f26632;
+      --red:#c73b42;--green:#16815d;--shadow:0 14px 40px rgba(23,50,56,.08);
+      --radius:24px;--radius-sm:16px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:
+      radial-gradient(circle at 10% -10%,rgba(0,108,100,.10),transparent 28%),
+      radial-gradient(circle at 95% 0,rgba(242,102,50,.08),transparent 20%),
+      var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Thai",Arial,sans-serif}
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+    a{color:inherit}
+    .shell{width:min(1440px,calc(100% - 28px));margin:auto;padding:18px 0 52px}
+    .topbar{position:sticky;top:10px;z-index:50;background:rgba(255,255,255,.86);backdrop-filter:blur(16px);
+      border:1px solid rgba(220,231,228,.9);border-radius:22px;box-shadow:0 10px 34px rgba(23,50,56,.08);
+      padding:12px 14px;display:flex;align-items:center;gap:12px;justify-content:space-between}
+    .brand{display:flex;align-items:center;gap:11px;min-width:0}
+    .mark{width:42px;height:42px;border-radius:14px;background:linear-gradient(145deg,var(--teal),#0a8f83);
+      display:grid;place-items:center;color:#fff;font-weight:900;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+    .brand strong{display:block;font-size:16px}
+    .brand small{display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .mode-switch{display:flex;background:#edf4f2;border-radius:14px;padding:4px;gap:4px}
+    .mode-switch button{border:0;background:transparent;color:var(--muted);padding:9px 13px;border-radius:11px;font-weight:800}
+    .mode-switch button.active{background:#fff;color:var(--teal);box-shadow:0 4px 14px rgba(23,50,56,.08)}
+    .status-pill{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:8px 10px;color:var(--muted);font-size:12px;background:#fff}
+    .dot{width:8px;height:8px;border-radius:50%;background:#b5c0be}.dot.on{background:#25a66f;box-shadow:0 0 0 4px rgba(37,166,111,.12)}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-top:14px}
+    .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;min-width:0}
+    .hero{grid-column:span 8;min-height:240px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;position:relative}
+    .hero:after{content:"";position:absolute;right:-70px;bottom:-90px;width:250px;height:250px;border-radius:50%;border:48px solid rgba(0,108,100,.06)}
+    .hero h1{font-size:clamp(28px,4.5vw,58px);line-height:1.02;margin:10px 0 12px;letter-spacing:-.04em;max-width:760px}
+    .hero p{margin:0;color:var(--muted);max-width:740px;line-height:1.65}
+    .mini-card{grid-column:span 4;display:flex;flex-direction:column;justify-content:space-between;min-height:240px}
+    .clock-time{font-size:clamp(42px,6vw,74px);font-weight:1000;letter-spacing:-.06em;line-height:.95;color:var(--teal);font-variant-numeric:tabular-nums;margin:14px 0 10px}
+    .clock-date{font-size:18px;font-weight:900;line-height:1.35}
+    .clock-weekday{color:var(--muted);font-size:13px;margin-top:5px}
+    .clock-zone{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+    .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.14em;font-weight:900;color:var(--teal)}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+    .chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:800;color:var(--ink)}
+    .chip.soft{background:var(--mint);border-color:transparent;color:var(--teal)}
+    .section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .section-head h2,.section-head h3{margin:0}
+    .section-head p{margin:5px 0 0;color:var(--muted);font-size:13px}
+    .student-panel{grid-column:span 12}
+    .form-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+    .field{grid-column:span 4}
+    .field.span-6{grid-column:span 6}.field.span-8{grid-column:span 8}.field.span-12{grid-column:span 12}
+    label{font-size:12px;font-weight:900;color:#385450;display:block;margin:0 0 7px}
+    input,select,textarea{width:100%;border:1px solid var(--line);border-radius:14px;background:#fbfdfc;color:var(--ink);padding:12px 13px;outline:none;transition:.2s}
+    input:focus,select:focus,textarea:focus{border-color:#75b9b2;box-shadow:0 0 0 4px rgba(0,108,100,.08);background:#fff}
+    textarea{min-height:100px;resize:vertical}
+    .btn{border:0;border-radius:14px;padding:11px 14px;font-weight:900;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
+    .btn:hover{transform:translateY(-1px)}
+    .btn.primary{background:var(--teal);color:#fff;box-shadow:0 8px 18px rgba(0,108,100,.20)}
+    .btn.secondary{background:var(--mint);color:var(--teal)}
+    .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+    .btn.danger{background:#fff0f0;color:var(--red);border:1px solid #ffd7da}
+    .btn.orange{background:#fff2ec;color:#bf4c23;border:1px solid #ffd8c8}
+    .btn.full{width:100%}
+    .action-row{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+    .notice{border-radius:16px;padding:12px 14px;background:var(--mint2);border:1px dashed #bcd8d3;color:#375a55;font-size:13px;line-height:1.55}
+    .exam-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+    .metric{background:#f7faf9;border:1px solid var(--line);border-radius:18px;padding:15px}
+    .metric b{display:block;font-size:23px;letter-spacing:-.03em}.metric span{color:var(--muted);font-size:12px}
+    .exam-shell{grid-column:span 12;padding:0;overflow:hidden}
+    .exam-top{position:sticky;top:84px;z-index:30;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:14px 18px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .timer{font-variant-numeric:tabular-nums;font-weight:1000;font-size:20px;color:var(--teal)}
+    .progress-track{height:10px;background:#eaf1ef;border-radius:999px;overflow:hidden;min-width:180px;flex:1;max-width:420px}
+    .progress-bar{height:100%;background:linear-gradient(90deg,var(--teal),#30a897);width:0%;transition:.2s}
+    .paper{padding:20px;background:
+      linear-gradient(#fff,#fff) padding-box,
+      repeating-linear-gradient(0deg,transparent 0 36px,rgba(23,50,56,.025) 37px) border-box}
+    .paper-head{border:1px solid #cbdad7;border-radius:20px;padding:16px;margin-bottom:16px;display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
+    .paper-head .identity{display:grid;gap:8px}
+    .linebox{border-bottom:1px dotted #80918e;padding:7px 2px;font-size:13px;color:#4f6662}
+    .sheet-badge{border-radius:16px;background:#f2f7f6;padding:14px;border:1px solid var(--line)}
+    .question-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+    .question-row{border:1px solid var(--line);border-radius:15px;padding:10px 11px;background:#fff;display:flex;align-items:center;gap:9px;min-height:54px}
+    .qno{width:34px;font-weight:1000;font-variant-numeric:tabular-nums;color:#48615d;flex:0 0 auto}
+    .bubbles{display:flex;flex-wrap:wrap;gap:7px}
+    .bubble{width:34px;height:34px;border-radius:50%;border:1.5px solid #9fb1ae;background:#fff;color:#5f716e;font-size:12px;font-weight:900;display:grid;place-items:center;transition:.12s}
+    .bubble:hover{border-color:var(--teal);color:var(--teal);transform:scale(1.04)}
+    .bubble.selected{background:var(--teal);color:#fff;border-color:var(--teal);box-shadow:0 0 0 4px rgba(0,108,100,.10)}
+    .question-row.answered{background:#fbfefd}
+    .mobile-submit{display:none;position:sticky;bottom:10px;z-index:25;margin:12px}
+    .admin-layout{grid-column:span 12;display:grid;grid-template-columns:260px 1fr;gap:14px;align-items:start}
+    .sidebar{position:sticky;top:84px;padding:14px}
+    .sidebar button{width:100%;text-align:left;border:0;background:transparent;border-radius:13px;padding:11px 12px;margin:3px 0;font-weight:800;color:#516662}
+    .sidebar button.active{background:var(--mint);color:var(--teal)}
+    .admin-main{min-width:0}
+    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .kpi{background:#fff;border:1px solid var(--line);border-radius:20px;padding:17px}
+    .kpi b{display:block;font-size:28px}.kpi small{color:var(--muted)}
+    .exam-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .exam-card{border:1px solid var(--line);border-radius:20px;padding:16px;background:#fff}
+    .exam-card h3{margin:7px 0 6px}
+    .exam-card p{margin:0;color:var(--muted);font-size:13px}
+    .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f0f5f4;border-radius:10px;padding:6px 9px;font-weight:900;letter-spacing:.06em}
+    .builder-q{display:grid;grid-template-columns:64px 120px 1fr;gap:10px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--line)}
+    .builder-q:last-child{border-bottom:0}
+    .builder-bubbles{display:flex;gap:6px;flex-wrap:wrap}
+    .builder-bubbles button{width:31px;height:31px;border-radius:50%;border:1px solid #b6c7c4;background:#fff;font-size:12px;font-weight:900;color:#62736f}
+    .builder-bubbles button.correct{background:var(--teal);border-color:var(--teal);color:#fff}
+    .monitor-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .monitor-card{border:1px solid var(--line);border-radius:18px;padding:14px;background:#fff}
+    .monitor-card.online{box-shadow:inset 4px 0 0 #26a86e}
+    .monitor-card.submitted{box-shadow:inset 4px 0 0 #738581}
+    .monitor-card .name{font-weight:1000}
+    .mini-progress{height:7px;background:#eaf0ef;border-radius:999px;overflow:hidden;margin:10px 0 6px}
+    .mini-progress>div{height:100%;background:var(--teal)}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:18px;background:#fff}
+    table{width:100%;border-collapse:collapse;min-width:760px}
+    th,td{padding:12px 13px;text-align:left;border-bottom:1px solid #edf2f1;font-size:13px}
+    th{background:#f7faf9;color:#4d625e;position:sticky;top:0}
+    tr:last-child td{border-bottom:0}
+    .delta.up{color:var(--green);font-weight:900}.delta.down{color:var(--red);font-weight:900}
+    .hard-list{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px}
+    .hard-item{border:1px solid var(--line);border-radius:15px;padding:12px;background:#fff}
+    .hard-item b{font-size:18px}.hard-item small{display:block;color:var(--muted)}
+    .result-hero{text-align:center;padding:28px 16px}
+    .score-ring{width:150px;height:150px;border-radius:50%;margin:10px auto 18px;display:grid;place-items:center;background:
+      radial-gradient(circle at center,#fff 59%,transparent 60%),
+      conic-gradient(var(--teal) calc(var(--score)*1%),#e7efed 0)}
+    .score-ring b{font-size:34px;letter-spacing:-.04em}.score-ring span{font-size:12px;color:var(--muted)}
+    .hidden{display:none!important}
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+    .spacer{height:4px}
+    .skeleton{height:90px;border-radius:16px;background:linear-gradient(90deg,#f0f4f3,#fafcfc,#f0f4f3);background-size:200% 100%;animation:shimmer 1.2s linear infinite}
+    @keyframes shimmer{to{background-position:-200% 0}}
+    .toast{position:fixed;right:18px;bottom:18px;z-index:1000;background:#173238;color:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 16px 40px rgba(0,0,0,.20);max-width:min(380px,calc(100vw - 36px));font-size:13px;transform:translateY(20px);opacity:0;pointer-events:none;transition:.2s}
+    .toast.show{transform:none;opacity:1}
+    .toast.error{background:#8d2f35}
+    .toast.ok{background:#075f57}
+    .footer{color:#71817f;text-align:center;font-size:12px;padding:24px 0 0}
+    @media(max-width:1050px){
+      .hero{grid-column:span 12}.mini-card{grid-column:span 12;min-height:auto}
+      .admin-layout{grid-template-columns:1fr}.sidebar{position:static;display:flex;overflow:auto;gap:6px}.sidebar button{width:auto;white-space:nowrap}
+      .kpis{grid-template-columns:repeat(2,1fr)}.monitor-grid{grid-template-columns:repeat(2,1fr)}
+    }
+    @media(max-width:760px){
+      .shell{width:min(100% - 16px,1440px);padding-top:8px}.topbar{top:6px;border-radius:18px}
+      .brand small,.status-pill{display:none}.mode-switch button{padding:8px 10px}
+      .grid{gap:9px}.card{padding:15px;border-radius:19px}.hero{min-height:220px}
+      .form-grid{grid-template-columns:1fr}.field,.field.span-6,.field.span-8,.field.span-12{grid-column:1}
+      .exam-summary{grid-template-columns:repeat(2,1fr)}
+      .paper{padding:10px}.paper-head{grid-template-columns:1fr;padding:12px}
+      .question-grid{grid-template-columns:1fr}.question-row{padding:9px}.bubble{width:36px;height:36px}
+      .exam-top{top:73px;padding:10px 12px}.progress-track{order:3;max-width:none;min-width:100%;width:100%}
+      .mobile-submit{display:block}.desktop-submit{display:none}
+      .kpis{grid-template-columns:1fr 1fr}.exam-list{grid-template-columns:1fr}.monitor-grid{grid-template-columns:1fr}
+      .builder-q{grid-template-columns:52px 88px 1fr;gap:7px}.hard-list{grid-template-columns:repeat(2,1fr)}
+    }
+    @media(max-width:430px){
+      .topbar{padding:9px}.mark{width:36px;height:36px;border-radius:12px}.brand strong{font-size:14px}
+      .mode-switch button{font-size:12px}.hero h1{font-size:34px}
+      .metric{padding:12px}.metric b{font-size:19px}.kpis{grid-template-columns:1fr}
+      .builder-q{grid-template-columns:46px 1fr}.builder-bubbles{grid-column:1 / -1;padding-left:46px}
+    }
+    @media print{
+      body{background:#fff}.topbar,.no-print,.mobile-submit{display:none!important}.shell{width:100%;padding:0}.card{box-shadow:none;border:0}
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark">AF</div>
+      <div><strong>AnswerFlow</strong><small>Smart Bubble Sheet & Real-time Exam Monitor</small></div>
+    </div>
+    <div class="mode-switch">
+      <button id="studentModeBtn" class="active" onclick="setMode('student')">ผู้เข้าสอบ</button>
+      <button id="adminModeBtn" onclick="setMode('admin')">แอดมิน</button>
+    </div>
+    <div class="status-pill"><span id="netDot" class="dot"></span><span id="netText">กำลังเชื่อมต่อ</span></div>
+  </header>
+
+  <main id="studentView">
+    <div class="grid">
+      <section class="card hero">
+        <div>
+          <div class="eyebrow">Digital answer sheet</div>
+          <h1>กระดาษคำตอบที่รู้ว่า<br>ใครกำลังทำถึงข้อไหน</h1>
+          <p>รองรับข้อสอบ สอวน., A-Level, Mock Exam และรูปแบบกำหนดเอง พร้อมวงกลมคำตอบแบบกระดาษจริง บันทึกอัตโนมัติ จับเวลา และเปรียบเทียบผลกับครั้งก่อน</p>
+        </div>
+        <div class="chips">
+          <span class="chip soft">สอวน. / POSN</span><span class="chip soft">A-Level</span><span class="chip">Auto-save</span><span class="chip">Real-time</span><span class="chip">Mobile-first</span>
+        </div>
+      </section>
+
+      <aside class="card mini-card" aria-label="วันที่และเวลาปัจจุบัน">
+        <div>
+          <div class="eyebrow">Thailand date & time</div>
+          <div id="currentTime" class="clock-time">--:--:--</div>
+          <div id="currentDate" class="clock-date">กำลังโหลดวันที่…</div>
+          <div id="currentWeekday" class="clock-weekday">—</div>
+        </div>
+        <div class="clock-zone"><span>เวลาประเทศไทย</span><span class="chip soft">Asia/Bangkok · UTC+7</span></div>
+      </aside>
+
+      <section id="resumeCard" class="card student-panel hidden">
+        <div class="section-head"><div><h3>มีการสอบที่ยังไม่ส่ง</h3><p id="resumeText"></p></div><button class="btn primary" onclick="resumeAttempt()">ทำต่อ</button></div>
+      </section>
+
+      <section id="joinCard" class="card student-panel">
+        <div class="section-head">
+          <div><div class="eyebrow">Join exam</div><h2>ข้อมูลผู้เข้าสอบ</h2><p>ชื่อและเบอร์โทรใช้เชื่อมผลรอบก่อนเพื่อดูพัฒนาการ</p></div>
+        </div>
+        <div class="form-grid">
+          <div class="field span-4"><label>ชื่อ–นามสกุล</label><input id="studentName" autocomplete="name" placeholder="เช่น กัญญาพัชร ปัททุมมา"></div>
+          <div class="field span-4"><label>เบอร์โทร</label><input id="studentPhone" inputmode="tel" autocomplete="tel" placeholder="08x-xxx-xxxx"></div>
+          <div class="field span-4"><label>รหัสข้อสอบ</label><input id="examCode" autocomplete="off" placeholder="เช่น POSN69" style="text-transform:uppercase"></div>
+          <div class="field span-12">
+            <div class="action-row">
+              <button class="btn primary" onclick="findExam(true)">เริ่มสอบ</button>
+              <span class="small muted">เมื่อกดเริ่มสอบ ระบบจะเปิดกระดาษคำตอบและเริ่มจับเวลาทันที</span>
+            </div>
+          </div>
+        </div>
+        <div id="examFound" class="hidden" style="margin-top:14px"></div>
+      </section>
+
+      <section id="examCard" class="card exam-shell hidden">
+        <div class="exam-top">
+          <div>
+            <div class="eyebrow" id="examTypeBadge">Exam</div>
+            <strong id="examTitleTop">—</strong>
+          </div>
+          <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+          <div style="text-align:right"><div id="timer" class="timer">--:--</div><div id="saveState" class="small muted">พร้อมบันทึก</div></div>
+          <button class="btn primary desktop-submit" onclick="confirmSubmit()">ส่งคำตอบ</button>
+        </div>
+        <div class="paper">
+          <div class="paper-head">
+            <div class="identity">
+              <div class="linebox">ชื่อ: <b id="sheetName">—</b></div>
+              <div class="linebox">เบอร์โทร: <b id="sheetPhone">—</b></div>
+              <div class="linebox">วิชา: <b id="sheetSubject">—</b></div>
+            </div>
+            <div class="sheet-badge">
+              <div class="eyebrow">Answer sheet</div>
+              <div id="sheetMeta" style="margin-top:8px;font-weight:900"></div>
+              <div id="sheetProgressText" class="small muted" style="margin-top:7px"></div>
+            </div>
+          </div>
+          <div id="questionGrid" class="question-grid"></div>
+        </div>
+        <div class="mobile-submit"><button class="btn primary full" onclick="confirmSubmit()">ส่งคำตอบ</button></div>
+      </section>
+
+      <section id="resultCard" class="card student-panel hidden"></section>
+    </div>
+  </main>
+
+  <main id="adminView" class="hidden">
+    <div class="grid">
+      <section id="adminLoginCard" class="card student-panel">
+        <div class="section-head">
+          <div><div class="eyebrow">Admin access</div><h2>เข้าสู่ระบบผู้ดูแล</h2><p>ใช้บัญชี Email/Password ที่สร้างใน Supabase Auth และกำหนด role เป็น admin</p></div>
+        </div>
+        <div class="form-grid">
+          <div class="field span-4"><label>Email</label><input id="adminEmail" type="email" autocomplete="username" placeholder="admin@example.com"></div>
+          <div class="field span-4"><label>Password</label><input id="adminPassword" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+          <div class="field span-4" style="display:flex;align-items:end"><button class="btn primary full" onclick="adminLogin()">เข้าสู่ระบบ</button></div>
+        </div>
+      </section>
+
+      <section id="adminApp" class="admin-layout hidden">
+        <aside class="card sidebar">
+          <button class="active" data-tab="overview" onclick="showAdminTab('overview',this)">ภาพรวม</button>
+          <button data-tab="exams" onclick="showAdminTab('exams',this)">คลังข้อสอบ</button>
+          <button data-tab="builder" onclick="showAdminTab('builder',this)">สร้างข้อสอบ</button>
+          <button data-tab="monitor" onclick="showAdminTab('monitor',this)">มอนิเตอร์สด</button>
+          <button data-tab="results" onclick="showAdminTab('results',this)">ผลสอบ / วิเคราะห์</button>
+          <button onclick="adminLogout()" style="color:#a23c42">ออกจากระบบ</button>
+        </aside>
+
+        <div class="admin-main">
+          <section id="tab-overview" class="admin-tab">
+            <div class="card">
+              <div class="section-head"><div><div class="eyebrow">Admin dashboard</div><h2>ภาพรวมระบบ</h2><p>ตัวเลขสรุปจากฐานข้อมูลล่าสุด</p></div><button class="btn ghost" onclick="loadAdminOverview()">รีเฟรช</button></div>
+              <div class="kpis">
+                <div class="kpi"><small>ข้อสอบทั้งหมด</small><b id="kpiExams">—</b></div>
+                <div class="kpi"><small>กำลังทำอยู่</small><b id="kpiLive">—</b></div>
+                <div class="kpi"><small>ส่งแล้วทั้งหมด</small><b id="kpiSubmitted">—</b></div>
+                <div class="kpi"><small>คะแนนเฉลี่ย</small><b id="kpiAvg">—</b></div>
+              </div>
+            </div>
+            <div class="card" style="margin-top:14px">
+              <div class="section-head"><div><h3>ข้อสอบล่าสุด</h3><p>เข้าถึงมอนิเตอร์หรือพิมพ์กระดาษเปล่าได้ทันที</p></div></div>
+              <div id="recentExams" class="exam-list"></div>
+            </div>
+          </section>
+
+          <section id="tab-exams" class="admin-tab hidden">
+            <div class="card">
+              <div class="section-head"><div><div class="eyebrow">Exam library</div><h2>คลังข้อสอบ</h2><p>เปิด/ปิดการเผยแพร่ และดูสถานะของแต่ละชุด</p></div><button class="btn primary" onclick="showAdminTab('builder');resetBuilder()">+ สร้างข้อสอบ</button></div>
+              <div id="examLibrary" class="exam-list"></div>
+            </div>
+          </section>
+
+          <section id="tab-builder" class="admin-tab hidden">
+            <div class="card">
+              <div class="section-head"><div><div class="eyebrow">Exam builder</div><h2>สร้างกระดาษคำตอบ</h2><p>ทุกค่าปรับได้เอง ไม่ยึดรูปแบบทางการของสนามสอบใดสนามสอบหนึ่ง</p></div><button class="btn ghost" onclick="resetBuilder()">ล้างฟอร์ม</button></div>
+
+              <div class="chips no-print" style="margin-bottom:14px">
+                <button class="chip" onclick="applyPreset('สอวน. / POSN','ชีววิทยา')">สอวน. ชีววิทยา</button>
+                <button class="chip" onclick="applyPreset('A-Level','ชีววิทยา')">A-Level ชีววิทยา</button>
+                <button class="chip" onclick="applyPreset('Mock Exam','')">Mock Exam</button>
+                <button class="chip" onclick="applyPreset('Custom','')">Custom</button>
+              </div>
+
+              <div class="form-grid">
+                <div class="field span-4"><label>ชนิดข้อสอบ</label>
+                  <select id="bExamType"><option>สอวน. / POSN</option><option>A-Level</option><option>Mock Exam</option><option>School Exam</option><option>Custom</option></select>
+                </div>
+                <div class="field span-4"><label>ชื่อชุดข้อสอบ</label><input id="bTitle" placeholder="เช่น POSN Biology Mock #1"></div>
+                <div class="field span-4"><label>วิชา</label><input id="bSubject" placeholder="ชีววิทยา"></div>
+                <div class="field span-4"><label>รหัสเข้าข้อสอบ</label><input id="bCode" maxlength="20" placeholder="POSN69A" style="text-transform:uppercase"></div>
+                <div class="field span-4"><label>จำนวนข้อ</label><input id="bCount" type="number" min="1" max="300" value="100"></div>
+                <div class="field span-4"><label>ตัวเลือกเริ่มต้นต่อข้อ</label><input id="bOptions" type="number" min="2" max="10" value="5"></div>
+                <div class="field span-4"><label>เวลาสอบ (นาที)</label><input id="bDuration" type="number" min="1" max="600" value="120"></div>
+                <div class="field span-4"><label>จำนวนครั้งที่เบอร์เดิมทำได้</label><input id="bMaxAttempts" type="number" min="1" max="20" value="1"></div>
+                <div class="field span-4"><label>แสดงคะแนนทันทีหลังส่ง</label>
+                  <select id="bShowScore"><option value="true">แสดง</option><option value="false">ไม่แสดง</option></select>
+                </div>
+                <div class="field span-6"><label>เปิดสอบตั้งแต่ (ไม่บังคับ)</label><input id="bOpenAt" type="datetime-local"></div>
+                <div class="field span-6"><label>ปิดสอบเมื่อ (ไม่บังคับ)</label><input id="bCloseAt" type="datetime-local"></div>
+                <div class="field span-12"><label>คำอธิบาย / คำชี้แจง</label><textarea id="bDesc" placeholder="คำชี้แจงก่อนเริ่มสอบ"></textarea></div>
+                <div class="field span-12">
+                  <div class="action-row">
+                    <button class="btn secondary" onclick="generateBuilderQuestions()">สร้างตารางเฉลย</button>
+                    <button class="btn primary" onclick="saveExam()">บันทึกข้อสอบ</button>
+                    <span class="small muted">กำหนดจำนวนตัวเลือกและข้อถูกได้แยกรายข้อ</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="builderKeyCard" class="card hidden" style="margin-top:14px">
+              <div class="section-head"><div><h3>เฉลยและจำนวนตัวเลือกต่อข้อ</h3><p>วงกลมสีเขียว = คำตอบที่ถูกต้อง</p></div><span id="builderCountLabel" class="chip soft"></span></div>
+              <div id="builderQuestions"></div>
+            </div>
+          </section>
+
+          <section id="tab-monitor" class="admin-tab hidden">
+            <div class="card">
+              <div class="section-head"><div><div class="eyebrow">Live monitor</div><h2>มอนิเตอร์แบบเรียลไทม์</h2><p>สถานะออนไลน์ อัตราความคืบหน้า เวลาคงเหลือ และจำนวนข้อที่ตอบ</p></div><span class="status-pill"><span class="dot on"></span> Realtime</span></div>
+              <div class="form-grid">
+                <div class="field span-6"><label>เลือกชุดข้อสอบ</label><select id="monitorExamSelect" onchange="startMonitor(this.value)"></select></div>
+                <div class="field span-6" style="display:flex;align-items:end"><div id="monitorSummary" class="notice" style="width:100%">เลือกข้อสอบเพื่อเริ่มมอนิเตอร์</div></div>
+              </div>
+              <div id="monitorGrid" class="monitor-grid" style="margin-top:14px"></div>
+            </div>
+          </section>
+
+          <section id="tab-results" class="admin-tab hidden">
+            <div class="card">
+              <div class="section-head"><div><div class="eyebrow">Results & analytics</div><h2>ผลสอบและเปรียบเทียบรอบก่อน</h2><p>จับคู่ด้วยเบอร์โทรที่ normalize แล้ว ภายในชนิดข้อสอบและวิชาเดียวกัน</p></div><button class="btn ghost" onclick="exportResultsCsv()">Export CSV</button></div>
+              <div class="form-grid">
+                <div class="field span-6"><label>เลือกชุดข้อสอบ</label><select id="resultExamSelect" onchange="loadResults(this.value)"></select></div>
+                <div class="field span-6" style="display:flex;align-items:end"><div id="resultSummary" class="notice" style="width:100%">เลือกข้อสอบเพื่อดูผล</div></div>
+              </div>
+              <div id="hardQuestions" class="hard-list"></div>
+              <div id="resultsTableWrap" style="margin-top:14px"></div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="footer">AnswerFlow · Responsive Bubble Sheet · Supabase-powered</div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://naekkdyprycrnbipraiv.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_ORA6ah_DuauqZrW7Pf2p6w_EyIlKtuw';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+});
+
+const S = {
+  mode:'student', session:null, isAdmin:false, exam:null, attempt:null, questions:[],
+  answers:new Map(), timer:null, heartbeat:null, saveBusy:0, finishing:false,
+  builderQuestions:[], exams:[], monitorChannel:null, monitorTimer:null,
+  currentMonitorExam:null, currentResults:[], resume:null
+};
+
+const $ = (s)=>document.querySelector(s);
+const $$ = (s)=>[...document.querySelectorAll(s)];
+const esc = (v='')=>String(v).replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m]));
+const fmtPct = n => n==null ? '—' : `${Number(n).toFixed(1)}%`;
+const maskPhone = p => {
+  const d=(p||'').replace(/\D/g,'');
+  if(d.length<7) return p||'—';
+  return d.slice(0,3)+'-xxx-'+d.slice(-4);
+};
+const online = ()=>{ $('#netDot').classList.add('on'); $('#netText').textContent='ออนไลน์'; };
+const offline = ()=>{ $('#netDot').classList.remove('on'); $('#netText').textContent='ออฟไลน์'; };
+window.addEventListener('online',online); window.addEventListener('offline',offline);
+navigator.onLine ? online() : offline();
+
+function toast(msg,type='ok'){
+  const t=$('#toast'); t.textContent=msg; t.className=`toast ${type} show`;
+  clearTimeout(t._x); t._x=setTimeout(()=>t.classList.remove('show'),2600);
+}
+function setMode(mode){
+  S.mode=mode;
+  $('#studentView').classList.toggle('hidden',mode!=='student');
+  $('#adminView').classList.toggle('hidden',mode!=='admin');
+  $('#studentModeBtn').classList.toggle('active',mode==='student');
+  $('#adminModeBtn').classList.toggle('active',mode==='admin');
+  if(mode==='student') checkResume();
+  else checkAdminSession();
+}
+function isoOrNull(v){ return v ? new Date(v).toISOString() : null; }
+function codeNorm(v){ return (v||'').trim().toUpperCase().replace(/\s+/g,''); }
+
+async function ensureAuth(){
+  let {data:{session}} = await sb.auth.getSession();
+  if(!session){
+    const {data,error}=await sb.auth.signInAnonymously();
+    if(error) throw new Error('Anonymous Sign-in ยังไม่เปิดใน Supabase Auth');
+    session=data.session;
+  }
+  S.session=session; return session;
+}
+
+function updateThaiClock(){
+  const now=new Date();
+  const timeFmt=new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+  const dateFmt=new Intl.DateTimeFormat('th-TH-u-ca-buddhist',{timeZone:'Asia/Bangkok',day:'numeric',month:'long',year:'numeric'});
+  const weekdayFmt=new Intl.DateTimeFormat('th-TH',{timeZone:'Asia/Bangkok',weekday:'long'});
+  if($('#currentTime')) $('#currentTime').textContent=timeFmt.format(now);
+  if($('#currentDate')) $('#currentDate').textContent=dateFmt.format(now);
+  if($('#currentWeekday')) $('#currentWeekday').textContent=weekdayFmt.format(now);
+}
+
+async function init(){
+  updateThaiClock();
+  setInterval(updateThaiClock,1000);
+  const {data:{session}}=await sb.auth.getSession(); S.session=session;
+  sb.auth.onAuthStateChange((_event,session)=>{S.session=session});
+  await checkResume();
+}
+init();
+
+/* ---------------- STUDENT ---------------- */
+async function findExam(autoStart=false){
+  const name=$('#studentName').value.trim(), phone=$('#studentPhone').value.trim(), code=codeNorm($('#examCode').value);
+  if(!name || !phone || !code) return toast('กรอกชื่อ เบอร์โทร และรหัสข้อสอบให้ครบ','error');
+  try{
+    await ensureAuth();
+    const {data,error}=await sb.from('af_exams').select('*').eq('access_code',code).eq('is_published',true).maybeSingle();
+    if(error) throw error;
+    if(!data){ $('#examFound').classList.add('hidden'); return toast('ไม่พบข้อสอบที่เปิดใช้งานด้วยรหัสนี้','error'); }
+    S.exam=data;
+    const now=Date.now(), op=data.opens_at?new Date(data.opens_at).getTime():null, cl=data.closes_at?new Date(data.closes_at).getTime():null;
+    if(op && now<op) return toast('ข้อสอบนี้ยังไม่ถึงเวลาเปิด','error');
+    if(cl && now>cl) return toast('ข้อสอบนี้ปิดรับแล้ว','error');
+    if(autoStart) return await startExam();
+    $('#examFound').innerHTML=`
+      <div class="notice" style="background:#fff;border-style:solid">
+        <div class="section-head" style="margin:0">
+          <div><div class="eyebrow">${esc(data.exam_type)}</div><h3 style="margin:5px 0">${esc(data.title)}</h3><div class="muted small">${esc(data.subject||'')} · รหัส ${esc(data.access_code)}</div></div>
+          <button class="btn primary" onclick="startExam()">เริ่มทำข้อสอบ</button>
+        </div>
+        <div class="exam-summary">
+          <div class="metric"><b>${data.question_count}</b><span>ข้อ</span></div>
+          <div class="metric"><b>${data.default_options}</b><span>ตัวเลือกเริ่มต้น</span></div>
+          <div class="metric"><b>${data.duration_minutes}</b><span>นาที</span></div>
+          <div class="metric"><b>${data.max_attempts_per_phone}</b><span>ครั้ง / เบอร์</span></div>
+        </div>
+        ${data.description?`<p class="small muted" style="margin:12px 0 0;line-height:1.6">${esc(data.description)}</p>`:''}
+      </div>`;
+    $('#examFound').classList.remove('hidden');
+  }catch(e){toast(e.message||'เชื่อมต่อไม่สำเร็จ','error')}
+}
+
+async function startExam(){
+  if(!S.exam) return;
+  const name=$('#studentName').value.trim(), phone=$('#studentPhone').value.trim();
+  try{
+    await ensureAuth();
+    const {data,error}=await sb.rpc('af_start_attempt',{p_exam_id:S.exam.id,p_full_name:name,p_phone:phone});
+    if(error) throw error;
+    await loadAttempt(data);
+    $('#joinCard').classList.add('hidden');
+    $('#resumeCard').classList.add('hidden');
+    $('#examCard').classList.remove('hidden');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }catch(e){toast(e.message||'เริ่มข้อสอบไม่สำเร็จ','error')}
+}
+
+async function loadAttempt(attemptId){
+  const {data:a,error:ae}=await sb.from('af_attempts').select('*, exams:af_exams(*) , candidates:af_candidates(full_name,phone_normalized)').eq('id',attemptId).single();
+  if(ae) throw ae;
+  S.attempt=a; S.exam=a.exams;
+  const {data:q,error:qe}=await sb.from('af_exam_questions').select('question_no,option_count').eq('exam_id',S.exam.id).order('question_no');
+  if(qe) throw qe;
+  S.questions=q||[];
+  const {data:ans,error:anse}=await sb.from('af_answers').select('question_no,selected_option').eq('attempt_id',attemptId);
+  if(anse) throw anse;
+  S.answers=new Map((ans||[]).map(x=>[x.question_no,x.selected_option]));
+  renderSheet();
+  startTimer();
+  startHeartbeat();
+}
+
+function renderSheet(){
+  const c=S.attempt.candidates||{};
+  $('#examTypeBadge').textContent=S.exam.exam_type||'Exam';
+  $('#examTitleTop').textContent=S.exam.title;
+  $('#sheetName').textContent=c.full_name||$('#studentName').value.trim()||'—';
+  $('#sheetPhone').textContent=maskPhone(c.phone_normalized||$('#studentPhone').value.trim());
+  $('#sheetSubject').textContent=S.exam.subject||'—';
+  $('#sheetMeta').textContent=`${S.exam.question_count} ข้อ · ${S.exam.duration_minutes} นาที`;
+  $('#questionGrid').innerHTML=S.questions.map(q=>{
+    const sel=S.answers.get(q.question_no);
+    return `<div class="question-row ${sel?'answered':''}" id="qrow-${q.question_no}">
+      <div class="qno">${q.question_no}.</div>
+      <div class="bubbles">${Array.from({length:q.option_count},(_,i)=>i+1).map(opt=>
+        `<button class="bubble ${sel===opt?'selected':''}" id="b-${q.question_no}-${opt}" onclick="chooseAnswer(${q.question_no},${opt})" aria-label="ข้อ ${q.question_no} ตัวเลือก ${opt}">${opt}</button>`
+      ).join('')}</div>
+    </div>`;
+  }).join('');
+  updateProgress();
+}
+
+async function chooseAnswer(q,opt){
+  if(S.finishing) return;
+  S.answers.set(q,opt);
+  const row=$(`#qrow-${q}`); row?.classList.add('answered');
+  row?.querySelectorAll('.bubble').forEach(b=>b.classList.remove('selected'));
+  $(`#b-${q}-${opt}`)?.classList.add('selected');
+  updateProgress();
+  S.saveBusy++; $('#saveState').textContent='กำลังบันทึก…';
+  const {error}=await sb.from('af_answers').upsert({attempt_id:S.attempt.id,question_no:q,selected_option:opt},{onConflict:'attempt_id,question_no'});
+  S.saveBusy--;
+  if(error){ $('#saveState').textContent='บันทึกไม่สำเร็จ'; toast(error.message,'error');}
+  else if(!S.saveBusy) $('#saveState').textContent='บันทึกแล้ว';
+}
+function updateProgress(){
+  const n=S.answers.size, total=S.questions.length||1, p=Math.round(n*100/total);
+  $('#progressBar').style.width=p+'%';
+  $('#sheetProgressText').textContent=`ตอบแล้ว ${n}/${S.questions.length} ข้อ · ${p}%`;
+}
+function startTimer(){
+  clearInterval(S.timer);
+  const end=new Date(S.attempt.started_at).getTime()+S.exam.duration_minutes*60000;
+  const tick=()=>{
+    const left=end-Date.now();
+    if(left<=0){ $('#timer').textContent='00:00'; clearInterval(S.timer); autoSubmit(); return; }
+    const sec=Math.floor(left/1000), h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+    $('#timer').textContent=(h?String(h).padStart(2,'0')+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    $('#timer').style.color=left<5*60000?'#c73b42':'var(--teal)';
+  };
+  tick(); S.timer=setInterval(tick,1000);
+}
+function startHeartbeat(){
+  clearInterval(S.heartbeat);
+  const beat=()=>S.attempt && sb.rpc('af_heartbeat_attempt',{p_attempt_id:S.attempt.id});
+  beat(); S.heartbeat=setInterval(beat,15000);
+}
+async function confirmSubmit(){
+  const missing=S.questions.length-S.answers.size;
+  if(missing>0 && !confirm(`ยังไม่ได้ตอบ ${missing} ข้อ ต้องการส่งคำตอบตอนนี้หรือไม่?`)) return;
+  if(missing===0 && !confirm('ยืนยันส่งคำตอบ? หลังส่งแล้วจะกลับมาแก้ไม่ได้')) return;
+  await finishAttempt();
+}
+async function autoSubmit(){
+  toast('หมดเวลา ระบบกำลังส่งคำตอบอัตโนมัติ');
+  await finishAttempt();
+}
+async function finishAttempt(){
+  if(S.finishing) return; S.finishing=true;
+  try{
+    const {error}=await sb.rpc('af_finish_attempt',{p_attempt_id:S.attempt.id});
+    if(error) throw error;
+    clearInterval(S.timer); clearInterval(S.heartbeat);
+    $('#examCard').classList.add('hidden');
+    await showStudentResult(S.attempt.id);
+  }catch(e){S.finishing=false;toast(e.message||'ส่งคำตอบไม่สำเร็จ','error')}
+}
+async function showStudentResult(attemptId){
+  const {data,error}=await sb.rpc('af_student_result',{p_attempt_id:attemptId});
+  if(error) return toast(error.message,'error');
+  const r=Array.isArray(data)?data[0]:data;
+  const card=$('#resultCard'); card.classList.remove('hidden');
+  if(!r?.score_visible){
+    card.innerHTML=`<div class="result-hero"><div class="eyebrow">Submitted</div><h2>ส่งคำตอบเรียบร้อยแล้ว</h2><p class="muted">ผู้ดูแลตั้งค่าไม่ให้แสดงคะแนนทันที</p><button class="btn primary" onclick="resetStudent()">กลับหน้าแรก</button></div>`;
+    return;
+  }
+  const delta=r.delta_percentage==null?null:Number(r.delta_percentage);
+  card.innerHTML=`<div class="result-hero">
+    <div class="eyebrow">Result</div><h2>ส่งคำตอบเรียบร้อย</h2>
+    <div class="score-ring" style="--score:${Number(r.percentage||0)}"><div><b>${Number(r.percentage||0).toFixed(1)}%</b><span>${r.score}/${r.max_score} คะแนน</span></div></div>
+    <div class="chips" style="justify-content:center">
+      <span class="chip">ตอบ ${r.answered_count}/${r.max_score} ข้อ</span>
+      ${r.previous_percentage==null?'<span class="chip">ยังไม่มีรอบก่อน</span>':`<span class="chip">รอบก่อน ${Number(r.previous_percentage).toFixed(1)}%</span>`}
+      ${delta==null?'':`<span class="chip ${delta>=0?'soft':''}">${delta>=0?'+':''}${delta.toFixed(1)} จุด</span>`}
+    </div>
+    <div style="margin-top:18px"><button class="btn primary" onclick="resetStudent()">กลับหน้าแรก</button></div>
+  </div>`;
+}
+function resetStudent(){
+  S.exam=null;S.attempt=null;S.answers=new Map();S.finishing=false;
+  $('#resultCard').classList.add('hidden');$('#examCard').classList.add('hidden');$('#joinCard').classList.remove('hidden');$('#examFound').classList.add('hidden');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+async function checkResume(){
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session) return;
+    const {data}=await sb.from('af_attempts').select('id,started_at,answered_count,exams:af_exams(title,duration_minutes)').is('submitted_at',null).eq('status','in_progress').order('started_at',{ascending:false}).limit(1).maybeSingle();
+    if(data){
+      S.resume=data;
+      $('#resumeText').textContent=`${data.exams?.title||'ข้อสอบ'} · ตอบแล้ว ${data.answered_count} ข้อ`;
+      $('#resumeCard').classList.remove('hidden');
+    }else $('#resumeCard').classList.add('hidden');
+  }catch(_){}
+}
+async function resumeAttempt(){
+  if(!S.resume) return;
+  try{
+    await loadAttempt(S.resume.id);
+    $('#joinCard').classList.add('hidden');$('#resumeCard').classList.add('hidden');$('#examCard').classList.remove('hidden');
+  }catch(e){toast(e.message,'error')}
+}
+
+/* ---------------- ADMIN AUTH ---------------- */
+async function adminLogin(){
+  const email=$('#adminEmail').value.trim(), password=$('#adminPassword').value;
+  if(!email||!password) return toast('กรอก Email และ Password','error');
+  const {data,error}=await sb.auth.signInWithPassword({email,password});
+  if(error) return toast(error.message,'error');
+  S.session=data.session;
+  await checkAdminSession(true);
+}
+async function checkAdminSession(fromLogin=false){
+  const {data:{session}}=await sb.auth.getSession(); S.session=session;
+  if(!session){ showAdminLogin(); return; }
+  const {data,error}=await sb.from('af_profiles').select('role,display_name').eq('user_id',session.user.id).maybeSingle();
+  if(error || data?.role!=='admin'){
+    showAdminLogin();
+    if(fromLogin) toast('บัญชีนี้ยังไม่ได้รับสิทธิ์ admin','error');
+    return;
+  }
+  S.isAdmin=true; $('#adminLoginCard').classList.add('hidden');$('#adminApp').classList.remove('hidden');
+  await Promise.all([loadAdminOverview(),loadExamLibrary()]);
+}
+function showAdminLogin(){S.isAdmin=false;$('#adminLoginCard').classList.remove('hidden');$('#adminApp').classList.add('hidden')}
+async function adminLogout(){stopMonitor();await sb.auth.signOut();showAdminLogin();toast('ออกจากระบบแล้ว')}
+
+function showAdminTab(name,btn){
+  $$('.admin-tab').forEach(x=>x.classList.add('hidden')); $(`#tab-${name}`).classList.remove('hidden');
+  $$('.sidebar button[data-tab]').forEach(x=>x.classList.remove('active'));
+  (btn||$(`.sidebar button[data-tab="${name}"]`))?.classList.add('active');
+  if(name==='monitor') populateExamSelectors();
+  if(name==='results') populateExamSelectors();
+  if(name==='exams') loadExamLibrary();
+}
+
+/* ---------------- ADMIN OVERVIEW/LIBRARY ---------------- */
+async function loadAdminOverview(){
+  if(!S.isAdmin) return;
+  const [{count:examCount},{data:attempts},{data:exams}]=await Promise.all([
+    sb.from('af_exams').select('*',{count:'exact',head:true}),
+    sb.from('af_attempts').select('status,submitted_at,percentage,last_seen'),
+    sb.from('af_exams').select('*').order('created_at',{ascending:false}).limit(4)
+  ]);
+  const all=attempts||[];
+  const live=all.filter(a=>!a.submitted_at && Date.now()-new Date(a.last_seen).getTime()<35000).length;
+  const submitted=all.filter(a=>a.submitted_at);
+  const avg=submitted.length?submitted.reduce((s,a)=>s+Number(a.percentage||0),0)/submitted.length:0;
+  $('#kpiExams').textContent=examCount??0; $('#kpiLive').textContent=live; $('#kpiSubmitted').textContent=submitted.length; $('#kpiAvg').textContent=fmtPct(avg);
+  $('#recentExams').innerHTML=(exams||[]).map(examCardHtml).join('')||'<div class="muted">ยังไม่มีข้อสอบ</div>';
+}
+async function loadExamLibrary(){
+  if(!S.isAdmin) return;
+  const {data,error}=await sb.from('af_exams').select('*').order('created_at',{ascending:false});
+  if(error) return toast(error.message,'error');
+  S.exams=data||[]; $('#examLibrary').innerHTML=S.exams.map(examCardHtml).join('')||'<div class="muted">ยังไม่มีข้อสอบ</div>';
+  populateExamSelectors();
+}
+function examCardHtml(e){
+  return `<div class="exam-card">
+    <div class="action-row" style="justify-content:space-between"><span class="chip soft">${esc(e.exam_type)}</span><span class="code">${esc(e.access_code)}</span></div>
+    <h3>${esc(e.title)}</h3><p>${esc(e.subject||'—')} · ${e.question_count} ข้อ · ${e.duration_minutes} นาที</p>
+    <div class="action-row" style="margin-top:13px">
+      <button class="btn ${e.is_published?'secondary':'ghost'}" onclick="togglePublish('${e.id}',${!e.is_published})">${e.is_published?'เผยแพร่แล้ว':'ยังไม่เผยแพร่'}</button>
+      <button class="btn ghost" onclick="openMonitor('${e.id}')">มอนิเตอร์</button>
+      <button class="btn ghost" onclick="openResults('${e.id}')">ผลสอบ</button>
+      <button class="btn ghost" onclick="printBlankSheet('${e.id}')">พิมพ์กระดาษ</button>
+    </div>
+  </div>`;
+}
+async function togglePublish(id,val){
+  const {error}=await sb.from('af_exams').update({is_published:val}).eq('id',id);
+  if(error) return toast(error.message,'error');
+  toast(val?'เปิดเผยแพร่แล้ว':'ปิดเผยแพร่แล้ว'); await Promise.all([loadExamLibrary(),loadAdminOverview()]);
+}
+function populateExamSelectors(){
+  const opts='<option value="">— เลือกข้อสอบ —</option>'+S.exams.map(e=>`<option value="${e.id}">${esc(e.title)} (${esc(e.access_code)})</option>`).join('');
+  $('#monitorExamSelect').innerHTML=opts; $('#resultExamSelect').innerHTML=opts;
+  if(S.currentMonitorExam) $('#monitorExamSelect').value=S.currentMonitorExam;
+}
+function openMonitor(id){showAdminTab('monitor');populateExamSelectors();$('#monitorExamSelect').value=id;startMonitor(id)}
+function openResults(id){showAdminTab('results');populateExamSelectors();$('#resultExamSelect').value=id;loadResults(id)}
+
+/* ---------------- BUILDER ---------------- */
+function applyPreset(type,subject){$('#bExamType').value=type; if(subject) $('#bSubject').value=subject;}
+function resetBuilder(){
+  $('#bExamType').value='สอวน. / POSN';$('#bTitle').value='';$('#bSubject').value='ชีววิทยา';$('#bCode').value='';$('#bCount').value=100;$('#bOptions').value=5;$('#bDuration').value=120;$('#bMaxAttempts').value=1;$('#bShowScore').value='true';$('#bOpenAt').value='';$('#bCloseAt').value='';$('#bDesc').value='';
+  S.builderQuestions=[];$('#builderKeyCard').classList.add('hidden');
+}
+function generateBuilderQuestions(){
+  const count=Number($('#bCount').value), opts=Number($('#bOptions').value);
+  if(count<1||count>300||opts<2||opts>10) return toast('ตรวจจำนวนข้อและจำนวนตัวเลือก','error');
+  S.builderQuestions=Array.from({length:count},(_,i)=>({question_no:i+1,option_count:opts,correct_option:null}));
+  renderBuilderQuestions();
+}
+function renderBuilderQuestions(){
+  $('#builderKeyCard').classList.remove('hidden');$('#builderCountLabel').textContent=`${S.builderQuestions.length} ข้อ`;
+  $('#builderQuestions').innerHTML=S.builderQuestions.map(q=>`<div class="builder-q" id="bq-${q.question_no}">
+    <b>ข้อ ${q.question_no}</b>
+    <input type="number" min="2" max="10" value="${q.option_count}" onchange="setQuestionOptions(${q.question_no},this.value)" aria-label="จำนวนตัวเลือกข้อ ${q.question_no}">
+    <div class="builder-bubbles">${Array.from({length:q.option_count},(_,i)=>i+1).map(o=>`<button class="${q.correct_option===o?'correct':''}" onclick="setCorrect(${q.question_no},${o})">${o}</button>`).join('')}</div>
+  </div>`).join('');
+}
+function setQuestionOptions(qno,v){
+  const q=S.builderQuestions.find(x=>x.question_no===qno); if(!q)return;
+  q.option_count=Math.max(2,Math.min(10,Number(v)||2)); if(q.correct_option>q.option_count) q.correct_option=null; renderBuilderQuestions();
+}
+function setCorrect(qno,opt){const q=S.builderQuestions.find(x=>x.question_no===qno);if(q){q.correct_option=opt;renderBuilderQuestions()}}
+async function saveExam(){
+  if(!S.isAdmin) return;
+  const payload={
+    exam_type:$('#bExamType').value,title:$('#bTitle').value.trim(),subject:$('#bSubject').value.trim(),
+    access_code:codeNorm($('#bCode').value),question_count:Number($('#bCount').value),default_options:Number($('#bOptions').value),
+    duration_minutes:Number($('#bDuration').value),max_attempts_per_phone:Number($('#bMaxAttempts').value),
+    show_score_after_submit:$('#bShowScore').value==='true',opens_at:isoOrNull($('#bOpenAt').value),closes_at:isoOrNull($('#bCloseAt').value),
+    description:$('#bDesc').value.trim(),is_published:false,created_by:S.session.user.id
+  };
+  if(!payload.title||!payload.subject||!payload.access_code) return toast('กรอกชื่อ วิชา และรหัสข้อสอบ','error');
+  if(S.builderQuestions.length!==payload.question_count) generateBuilderQuestions();
+  const missing=S.builderQuestions.filter(q=>!q.correct_option);
+  if(missing.length) return toast(`ยังไม่ได้กำหนดข้อถูก ${missing.length} ข้อ`,'error');
+  let examId=null;
+  try{
+    const {data:e,error:ee}=await sb.from('af_exams').insert(payload).select().single(); if(ee) throw ee; examId=e.id;
+    const qs=S.builderQuestions.map(q=>({exam_id:examId,question_no:q.question_no,option_count:q.option_count}));
+    const ks=S.builderQuestions.map(q=>({exam_id:examId,question_no:q.question_no,correct_option:q.correct_option}));
+    const {error:qerr}=await sb.from('af_exam_questions').insert(qs); if(qerr) throw qerr;
+    const {error:kerr}=await sb.from('af_answer_keys').insert(ks); if(kerr) throw kerr;
+    toast('บันทึกข้อสอบแล้ว — ยังไม่ได้เผยแพร่');
+    resetBuilder(); await loadExamLibrary(); showAdminTab('exams');
+  }catch(e){
+    if(examId) await sb.from('af_exams').delete().eq('id',examId);
+    toast(e.message||'บันทึกไม่สำเร็จ','error');
+  }
+}
+
+/* ---------------- REALTIME MONITOR ---------------- */
+function stopMonitor(){
+  if(S.monitorChannel){sb.removeChannel(S.monitorChannel);S.monitorChannel=null}
+  clearInterval(S.monitorTimer); S.monitorTimer=null;
+}
+async function startMonitor(examId){
+  stopMonitor(); S.currentMonitorExam=examId||null;
+  if(!examId){$('#monitorGrid').innerHTML='';$('#monitorSummary').textContent='เลือกข้อสอบเพื่อเริ่มมอนิเตอร์';return}
+  await fetchMonitor(examId);
+  S.monitorChannel=sb.channel('attempt-monitor-'+examId)
+    .on('postgres_changes',{event:'*',schema:'public',table:'af_attempts',filter:`exam_id=eq.${examId}`},()=>fetchMonitor(examId))
+    .subscribe();
+  S.monitorTimer=setInterval(()=>fetchMonitor(examId),10000);
+}
+async function fetchMonitor(examId){
+  const exam=S.exams.find(e=>e.id===examId);
+  const {data,error}=await sb.from('af_attempts').select('id,started_at,submitted_at,last_seen,answered_count,status,percentage,candidates:af_candidates(full_name,phone_normalized)').eq('exam_id',examId).order('started_at',{ascending:false});
+  if(error) return toast(error.message,'error');
+  const rows=data||[], live=rows.filter(r=>!r.submitted_at && Date.now()-new Date(r.last_seen).getTime()<35000).length;
+  $('#monitorSummary').textContent=`ทั้งหมด ${rows.length} คน · ออนไลน์ ${live} คน · ส่งแล้ว ${rows.filter(r=>r.submitted_at).length} คน`;
+  $('#monitorGrid').innerHTML=rows.map(r=>{
+    const isOn=!r.submitted_at && Date.now()-new Date(r.last_seen).getTime()<35000;
+    const total=exam?.question_count||1,p=Math.round((r.answered_count||0)*100/total);
+    let left='—';
+    if(!r.submitted_at && exam){const ms=new Date(r.started_at).getTime()+exam.duration_minutes*60000-Date.now();left=ms>0?Math.ceil(ms/60000)+' นาที':'หมดเวลา'}
+    return `<div class="monitor-card ${r.submitted_at?'submitted':isOn?'online':''}">
+      <div class="action-row" style="justify-content:space-between"><div class="name">${esc(r.candidates?.full_name||'—')}</div><span class="chip ${isOn?'soft':''}">${r.submitted_at?'ส่งแล้ว':isOn?'ออนไลน์':'ไม่ active'}</span></div>
+      <div class="small muted">${maskPhone(r.candidates?.phone_normalized)}</div>
+      <div class="mini-progress"><div style="width:${p}%"></div></div>
+      <div class="action-row" style="justify-content:space-between"><span class="small">${r.answered_count||0}/${total} ข้อ</span><span class="small">${r.submitted_at?fmtPct(r.percentage):left}</span></div>
+    </div>`;
+  }).join('')||'<div class="muted">ยังไม่มีผู้เข้าสอบ</div>';
+}
+
+/* ---------------- RESULTS ---------------- */
+async function loadResults(examId){
+  S.currentResults=[]; $('#resultsTableWrap').innerHTML='';$('#hardQuestions').innerHTML='';
+  if(!examId){$('#resultSummary').textContent='เลือกข้อสอบเพื่อดูผล';return}
+  const [{data:rows,error},{data:stats,error:se}]=await Promise.all([
+    sb.rpc('af_admin_results',{p_exam_id:examId}),
+    sb.rpc('af_admin_question_stats',{p_exam_id:examId})
+  ]);
+  if(error) return toast(error.message,'error'); if(se) console.warn(se);
+  S.currentResults=rows||[];
+  const avg=S.currentResults.length?S.currentResults.reduce((s,r)=>s+Number(r.percentage||0),0)/S.currentResults.length:0;
+  $('#resultSummary').textContent=`ส่งแล้ว ${S.currentResults.length} คน · คะแนนเฉลี่ย ${avg.toFixed(1)}%`;
+  const hardest=(stats||[]).sort((a,b)=>Number(a.correct_pct)-Number(b.correct_pct)).slice(0,10);
+  $('#hardQuestions').innerHTML=hardest.map(x=>`<div class="hard-item"><small>ข้อ ${x.question_no}</small><b>${Number(x.correct_pct||0).toFixed(0)}%</b><small>ตอบถูก ${x.correct_count}/${x.total_attempts}</small></div>`).join('');
+  $('#resultsTableWrap').innerHTML=`<div class="table-wrap"><table>
+    <thead><tr><th>ชื่อ</th><th>เบอร์โทร</th><th>คะแนน</th><th>%</th><th>รอบก่อน</th><th>Δ</th><th>ตอบ</th><th>เวลาส่ง</th></tr></thead>
+    <tbody>${S.currentResults.map(r=>{
+      const d=r.delta_percentage==null?null:Number(r.delta_percentage);
+      return `<tr><td><b>${esc(r.full_name)}</b></td><td>${maskPhone(r.phone)}</td><td>${r.score}/${r.max_score}</td><td>${fmtPct(r.percentage)}</td><td>${fmtPct(r.previous_percentage)}</td><td class="delta ${d==null?'':d>=0?'up':'down'}">${d==null?'—':(d>=0?'+':'')+d.toFixed(1)}</td><td>${r.answered_count}</td><td>${r.submitted_at?new Date(r.submitted_at).toLocaleString('th-TH'):'—'}</td></tr>`
+    }).join('')}</tbody></table></div>`;
+}
+function exportResultsCsv(){
+  if(!S.currentResults.length) return toast('ยังไม่มีข้อมูลให้ export','error');
+  const head=['ชื่อ','เบอร์โทร','คะแนน','คะแนนเต็ม','เปอร์เซ็นต์','รอบก่อน','ส่วนต่าง','ตอบแล้ว','เวลาส่ง'];
+  const rows=S.currentResults.map(r=>[r.full_name,r.phone,r.score,r.max_score,r.percentage,r.previous_percentage??'',r.delta_percentage??'',r.answered_count,r.submitted_at??'']);
+  const csv=[head,...rows].map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}), a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='answerflow-results.csv';a.click();URL.revokeObjectURL(a.href);
+}
+
+/* ---------------- PRINTABLE BLANK SHEET ---------------- */
+async function printBlankSheet(examId){
+  const w=window.open('','_blank'); if(!w) return toast('เบราว์เซอร์บล็อกหน้าต่างพิมพ์','error');
+  w.document.write('<p style="font-family:Arial;padding:20px">Loading…</p>');
+  const exam=S.exams.find(e=>e.id===examId);
+  const {data:q,error}=await sb.from('af_exam_questions').select('question_no,option_count').eq('exam_id',examId).order('question_no');
+  if(error){w.close();return toast(error.message,'error')}
+  const rows=(q||[]).map(x=>`<div class="q"><b>${x.question_no}</b><span>${Array.from({length:x.option_count},(_,i)=>`<i>${i+1}</i>`).join('')}</span></div>`).join('');
+  w.document.open();w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(exam?.title||'Answer Sheet')}</title><style>
+    @page{size:A4;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,"Noto Sans Thai",sans-serif;color:#222;margin:0}
+    .head{border:1px solid #777;padding:10px;margin-bottom:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px}.line{border-bottom:1px dotted #777;padding:7px}
+    h1{font-size:18px;margin:0 0 6px}.meta{font-size:11px;color:#555}
+    .grid{columns:4;column-gap:9px}.q{break-inside:avoid;display:flex;align-items:center;gap:5px;border-bottom:1px dotted #ddd;padding:4px 0;font-size:10px}.q>b{width:24px}
+    .q span{display:flex;gap:3px}.q i{font-style:normal;border:1px solid #888;border-radius:50%;width:16px;height:16px;display:grid;place-items:center;font-size:8px}
+    .note{font-size:10px;margin:8px 0}
+    @media print{button{display:none}}
+  </style></head><body>
+    <div class="head"><div><h1>AnswerFlow — ${esc(exam?.title||'Answer Sheet')}</h1><div class="meta">${esc(exam?.exam_type||'')} · ${esc(exam?.subject||'')} · ${exam?.question_count||0} ข้อ</div></div><div><div class="line">ชื่อ–นามสกุล</div><div class="line">เบอร์โทร</div></div></div>
+    <div class="note">วงกลมคำตอบให้ชัดเจน และตรวจสอบเลขข้อก่อนส่ง</div><div class="grid">${rows}</div>
+    <script>window.onload=()=>window.print()<\/script>
+  </body></html>`);w.document.close();
+}
+</script>
+</body>
+</html>

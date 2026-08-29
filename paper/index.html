@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0f766e" />
-  <title>AnswerFlow — Smart Bubble Sheet</title>
+  <title>Paper — Smart Bubble Sheet</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root{
@@ -180,7 +180,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="mark">AF</div>
-      <div><strong>AnswerFlow</strong><small>Smart Bubble Sheet & Real-time Exam Monitor</small></div>
+      <div><strong>Paper</strong><small>Paper · Smart Bubble Sheet & Real-time Monitor</small></div>
     </div>
     <div class="mode-switch">
       <button id="studentModeBtn" class="active" onclick="setMode('student')">ผู้เข้าสอบ</button>
@@ -252,7 +252,7 @@
               <div class="linebox">วิชา: <b id="sheetSubject">—</b></div>
             </div>
             <div class="sheet-badge">
-              <div class="eyebrow">Answer sheet</div>
+              <div class="eyebrow">Paper answer sheet</div>
               <div id="sheetMeta" style="margin-top:8px;font-weight:900"></div>
               <div id="sheetProgressText" class="small muted" style="margin-top:7px"></div>
             </div>
@@ -270,7 +270,7 @@
     <div class="grid">
       <section id="adminLoginCard" class="card student-panel">
         <div class="section-head">
-          <div><div class="eyebrow">Admin access</div><h2>เข้าสู่ระบบผู้ดูแล</h2><p>ใช้บัญชี Email/Password ที่สร้างใน Supabase Auth และกำหนด role เป็น admin</p></div>
+          <div><div class="eyebrow">Admin access</div><h2>เข้าสู่ระบบผู้ดูแล</h2><p>ใช้บัญชี Admin เดียวกับระบบข้อสอบหลัก โดยตรวจสิทธิ์จากตาราง exam_admins</p></div>
         </div>
         <div class="form-grid">
           <div class="field span-4"><label>Email</label><input id="adminEmail" type="email" autocomplete="username" placeholder="admin@example.com"></div>
@@ -286,6 +286,7 @@
           <button data-tab="builder" onclick="showAdminTab('builder',this)">สร้างข้อสอบ</button>
           <button data-tab="monitor" onclick="showAdminTab('monitor',this)">มอนิเตอร์สด</button>
           <button data-tab="results" onclick="showAdminTab('results',this)">ผลสอบ / วิเคราะห์</button>
+          <button onclick="location.href='../admin.html'">← Admin ระบบข้อสอบหลัก</button>
           <button onclick="adminLogout()" style="color:#a23c42">ออกจากระบบ</button>
         </aside>
 
@@ -383,7 +384,7 @@
     </div>
   </main>
 
-  <div class="footer">AnswerFlow · Responsive Bubble Sheet · Supabase-powered</div>
+  <div class="footer">Paper · Bubble Sheet · เชื่อมสิทธิ์ผู้ดูแลจากระบบข้อสอบหลัก</div>
 </div>
 <div id="toast" class="toast"></div>
 
@@ -466,7 +467,7 @@ async function findExam(autoStart=false){
   if(!name || !phone || !code) return toast('กรอกชื่อ เบอร์โทร และรหัสข้อสอบให้ครบ','error');
   try{
     await ensureAuth();
-    const {data,error}=await sb.from('af_exams').select('*').eq('access_code',code).eq('is_published',true).maybeSingle();
+    const {data,error}=await sb.from('paper_exams').select('*').eq('access_code',code).eq('is_published',true).maybeSingle();
     if(error) throw error;
     if(!data){ $('#examFound').classList.add('hidden'); return toast('ไม่พบข้อสอบที่เปิดใช้งานด้วยรหัสนี้','error'); }
     S.exam=data;
@@ -497,7 +498,7 @@ async function startExam(){
   const name=$('#studentName').value.trim(), phone=$('#studentPhone').value.trim();
   try{
     await ensureAuth();
-    const {data,error}=await sb.rpc('af_start_attempt',{p_exam_id:S.exam.id,p_full_name:name,p_phone:phone});
+    const {data,error}=await sb.rpc('paper_start_attempt',{p_exam_id:S.exam.id,p_full_name:name,p_phone:phone});
     if(error) throw error;
     await loadAttempt(data);
     $('#joinCard').classList.add('hidden');
@@ -508,13 +509,13 @@ async function startExam(){
 }
 
 async function loadAttempt(attemptId){
-  const {data:a,error:ae}=await sb.from('af_attempts').select('*, exams:af_exams(*) , candidates:af_candidates(full_name,phone_normalized)').eq('id',attemptId).single();
+  const {data:a,error:ae}=await sb.from('paper_attempts').select('*, exams:paper_exams(*) , candidates:paper_candidates(full_name,phone_normalized)').eq('id',attemptId).single();
   if(ae) throw ae;
   S.attempt=a; S.exam=a.exams;
-  const {data:q,error:qe}=await sb.from('af_exam_questions').select('question_no,option_count').eq('exam_id',S.exam.id).order('question_no');
+  const {data:q,error:qe}=await sb.from('paper_exam_questions').select('question_no,option_count').eq('exam_id',S.exam.id).order('question_no');
   if(qe) throw qe;
   S.questions=q||[];
-  const {data:ans,error:anse}=await sb.from('af_answers').select('question_no,selected_option').eq('attempt_id',attemptId);
+  const {data:ans,error:anse}=await sb.from('paper_answers').select('question_no,selected_option').eq('attempt_id',attemptId);
   if(anse) throw anse;
   S.answers=new Map((ans||[]).map(x=>[x.question_no,x.selected_option]));
   renderSheet();
@@ -550,7 +551,7 @@ async function chooseAnswer(q,opt){
   $(`#b-${q}-${opt}`)?.classList.add('selected');
   updateProgress();
   S.saveBusy++; $('#saveState').textContent='กำลังบันทึก…';
-  const {error}=await sb.from('af_answers').upsert({attempt_id:S.attempt.id,question_no:q,selected_option:opt},{onConflict:'attempt_id,question_no'});
+  const {error}=await sb.from('paper_answers').upsert({attempt_id:S.attempt.id,question_no:q,selected_option:opt},{onConflict:'attempt_id,question_no'});
   S.saveBusy--;
   if(error){ $('#saveState').textContent='บันทึกไม่สำเร็จ'; toast(error.message,'error');}
   else if(!S.saveBusy) $('#saveState').textContent='บันทึกแล้ว';
@@ -574,7 +575,7 @@ function startTimer(){
 }
 function startHeartbeat(){
   clearInterval(S.heartbeat);
-  const beat=()=>S.attempt && sb.rpc('af_heartbeat_attempt',{p_attempt_id:S.attempt.id});
+  const beat=()=>S.attempt && sb.rpc('paper_heartbeat_attempt',{p_attempt_id:S.attempt.id});
   beat(); S.heartbeat=setInterval(beat,15000);
 }
 async function confirmSubmit(){
@@ -590,7 +591,7 @@ async function autoSubmit(){
 async function finishAttempt(){
   if(S.finishing) return; S.finishing=true;
   try{
-    const {error}=await sb.rpc('af_finish_attempt',{p_attempt_id:S.attempt.id});
+    const {error}=await sb.rpc('paper_finish_attempt',{p_attempt_id:S.attempt.id});
     if(error) throw error;
     clearInterval(S.timer); clearInterval(S.heartbeat);
     $('#examCard').classList.add('hidden');
@@ -598,7 +599,7 @@ async function finishAttempt(){
   }catch(e){S.finishing=false;toast(e.message||'ส่งคำตอบไม่สำเร็จ','error')}
 }
 async function showStudentResult(attemptId){
-  const {data,error}=await sb.rpc('af_student_result',{p_attempt_id:attemptId});
+  const {data,error}=await sb.rpc('paper_student_result',{p_attempt_id:attemptId});
   if(error) return toast(error.message,'error');
   const r=Array.isArray(data)?data[0]:data;
   const card=$('#resultCard'); card.classList.remove('hidden');
@@ -627,7 +628,7 @@ async function checkResume(){
   try{
     const {data:{session}}=await sb.auth.getSession();
     if(!session) return;
-    const {data}=await sb.from('af_attempts').select('id,started_at,answered_count,exams:af_exams(title,duration_minutes)').is('submitted_at',null).eq('status','in_progress').order('started_at',{ascending:false}).limit(1).maybeSingle();
+    const {data}=await sb.from('paper_attempts').select('id,started_at,answered_count,exams:paper_exams(title,duration_minutes)').is('submitted_at',null).eq('status','in_progress').order('started_at',{ascending:false}).limit(1).maybeSingle();
     if(data){
       S.resume=data;
       $('#resumeText').textContent=`${data.exams?.title||'ข้อสอบ'} · ตอบแล้ว ${data.answered_count} ข้อ`;
@@ -655,13 +656,19 @@ async function adminLogin(){
 async function checkAdminSession(fromLogin=false){
   const {data:{session}}=await sb.auth.getSession(); S.session=session;
   if(!session){ showAdminLogin(); return; }
-  const {data,error}=await sb.from('af_profiles').select('role,display_name').eq('user_id',session.user.id).maybeSingle();
-  if(error || data?.role!=='admin'){
+
+  // ใช้สิทธิ์ Admin ชุดเดียวกับระบบข้อสอบหลัก: public.exam_admins
+  const {data,error}=await sb.rpc('paper_admin_status');
+  const state = data || {};
+  if(error || !state.is_admin){
     showAdminLogin();
-    if(fromLogin) toast('บัญชีนี้ยังไม่ได้รับสิทธิ์ admin','error');
+    if(fromLogin) toast('บัญชีนี้ยังไม่ได้อยู่ใน exam_admins ของระบบข้อสอบหลัก','error');
     return;
   }
-  S.isAdmin=true; $('#adminLoginCard').classList.add('hidden');$('#adminApp').classList.remove('hidden');
+
+  S.isAdmin=true;
+  $('#adminLoginCard').classList.add('hidden');
+  $('#adminApp').classList.remove('hidden');
   await Promise.all([loadAdminOverview(),loadExamLibrary()]);
 }
 function showAdminLogin(){S.isAdmin=false;$('#adminLoginCard').classList.remove('hidden');$('#adminApp').classList.add('hidden')}
@@ -680,9 +687,9 @@ function showAdminTab(name,btn){
 async function loadAdminOverview(){
   if(!S.isAdmin) return;
   const [{count:examCount},{data:attempts},{data:exams}]=await Promise.all([
-    sb.from('af_exams').select('*',{count:'exact',head:true}),
-    sb.from('af_attempts').select('status,submitted_at,percentage,last_seen'),
-    sb.from('af_exams').select('*').order('created_at',{ascending:false}).limit(4)
+    sb.from('paper_exams').select('*',{count:'exact',head:true}),
+    sb.from('paper_attempts').select('status,submitted_at,percentage,last_seen'),
+    sb.from('paper_exams').select('*').order('created_at',{ascending:false}).limit(4)
   ]);
   const all=attempts||[];
   const live=all.filter(a=>!a.submitted_at && Date.now()-new Date(a.last_seen).getTime()<35000).length;
@@ -693,7 +700,7 @@ async function loadAdminOverview(){
 }
 async function loadExamLibrary(){
   if(!S.isAdmin) return;
-  const {data,error}=await sb.from('af_exams').select('*').order('created_at',{ascending:false});
+  const {data,error}=await sb.from('paper_exams').select('*').order('created_at',{ascending:false});
   if(error) return toast(error.message,'error');
   S.exams=data||[]; $('#examLibrary').innerHTML=S.exams.map(examCardHtml).join('')||'<div class="muted">ยังไม่มีข้อสอบ</div>';
   populateExamSelectors();
@@ -711,7 +718,7 @@ function examCardHtml(e){
   </div>`;
 }
 async function togglePublish(id,val){
-  const {error}=await sb.from('af_exams').update({is_published:val}).eq('id',id);
+  const {error}=await sb.from('paper_exams').update({is_published:val}).eq('id',id);
   if(error) return toast(error.message,'error');
   toast(val?'เปิดเผยแพร่แล้ว':'ปิดเผยแพร่แล้ว'); await Promise.all([loadExamLibrary(),loadAdminOverview()]);
 }
@@ -763,15 +770,15 @@ async function saveExam(){
   if(missing.length) return toast(`ยังไม่ได้กำหนดข้อถูก ${missing.length} ข้อ`,'error');
   let examId=null;
   try{
-    const {data:e,error:ee}=await sb.from('af_exams').insert(payload).select().single(); if(ee) throw ee; examId=e.id;
+    const {data:e,error:ee}=await sb.from('paper_exams').insert(payload).select().single(); if(ee) throw ee; examId=e.id;
     const qs=S.builderQuestions.map(q=>({exam_id:examId,question_no:q.question_no,option_count:q.option_count}));
     const ks=S.builderQuestions.map(q=>({exam_id:examId,question_no:q.question_no,correct_option:q.correct_option}));
-    const {error:qerr}=await sb.from('af_exam_questions').insert(qs); if(qerr) throw qerr;
-    const {error:kerr}=await sb.from('af_answer_keys').insert(ks); if(kerr) throw kerr;
+    const {error:qerr}=await sb.from('paper_exam_questions').insert(qs); if(qerr) throw qerr;
+    const {error:kerr}=await sb.from('paper_answer_keys').insert(ks); if(kerr) throw kerr;
     toast('บันทึกข้อสอบแล้ว — ยังไม่ได้เผยแพร่');
     resetBuilder(); await loadExamLibrary(); showAdminTab('exams');
   }catch(e){
-    if(examId) await sb.from('af_exams').delete().eq('id',examId);
+    if(examId) await sb.from('paper_exams').delete().eq('id',examId);
     toast(e.message||'บันทึกไม่สำเร็จ','error');
   }
 }
@@ -786,13 +793,13 @@ async function startMonitor(examId){
   if(!examId){$('#monitorGrid').innerHTML='';$('#monitorSummary').textContent='เลือกข้อสอบเพื่อเริ่มมอนิเตอร์';return}
   await fetchMonitor(examId);
   S.monitorChannel=sb.channel('attempt-monitor-'+examId)
-    .on('postgres_changes',{event:'*',schema:'public',table:'af_attempts',filter:`exam_id=eq.${examId}`},()=>fetchMonitor(examId))
+    .on('postgres_changes',{event:'*',schema:'public',table:'paper_attempts',filter:`exam_id=eq.${examId}`},()=>fetchMonitor(examId))
     .subscribe();
   S.monitorTimer=setInterval(()=>fetchMonitor(examId),10000);
 }
 async function fetchMonitor(examId){
   const exam=S.exams.find(e=>e.id===examId);
-  const {data,error}=await sb.from('af_attempts').select('id,started_at,submitted_at,last_seen,answered_count,status,percentage,candidates:af_candidates(full_name,phone_normalized)').eq('exam_id',examId).order('started_at',{ascending:false});
+  const {data,error}=await sb.from('paper_attempts').select('id,started_at,submitted_at,last_seen,answered_count,status,percentage,candidates:paper_candidates(full_name,phone_normalized)').eq('exam_id',examId).order('started_at',{ascending:false});
   if(error) return toast(error.message,'error');
   const rows=data||[], live=rows.filter(r=>!r.submitted_at && Date.now()-new Date(r.last_seen).getTime()<35000).length;
   $('#monitorSummary').textContent=`ทั้งหมด ${rows.length} คน · ออนไลน์ ${live} คน · ส่งแล้ว ${rows.filter(r=>r.submitted_at).length} คน`;
@@ -815,8 +822,8 @@ async function loadResults(examId){
   S.currentResults=[]; $('#resultsTableWrap').innerHTML='';$('#hardQuestions').innerHTML='';
   if(!examId){$('#resultSummary').textContent='เลือกข้อสอบเพื่อดูผล';return}
   const [{data:rows,error},{data:stats,error:se}]=await Promise.all([
-    sb.rpc('af_admin_results',{p_exam_id:examId}),
-    sb.rpc('af_admin_question_stats',{p_exam_id:examId})
+    sb.rpc('paper_admin_results',{p_exam_id:examId}),
+    sb.rpc('paper_admin_question_stats',{p_exam_id:examId})
   ]);
   if(error) return toast(error.message,'error'); if(se) console.warn(se);
   S.currentResults=rows||[];
@@ -845,7 +852,7 @@ async function printBlankSheet(examId){
   const w=window.open('','_blank'); if(!w) return toast('เบราว์เซอร์บล็อกหน้าต่างพิมพ์','error');
   w.document.write('<p style="font-family:Arial;padding:20px">Loading…</p>');
   const exam=S.exams.find(e=>e.id===examId);
-  const {data:q,error}=await sb.from('af_exam_questions').select('question_no,option_count').eq('exam_id',examId).order('question_no');
+  const {data:q,error}=await sb.from('paper_exam_questions').select('question_no,option_count').eq('exam_id',examId).order('question_no');
   if(error){w.close();return toast(error.message,'error')}
   const rows=(q||[]).map(x=>`<div class="q"><b>${x.question_no}</b><span>${Array.from({length:x.option_count},(_,i)=>`<i>${i+1}</i>`).join('')}</span></div>`).join('');
   w.document.open();w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(exam?.title||'Answer Sheet')}</title><style>
